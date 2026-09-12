@@ -5,7 +5,7 @@
  *   SHOT_VIEW=sheet npm run shot     시간표
  *   SHOT_VIEW=compose npm run shot   퀘스트 적기 폼
  *   SHOT_VIEW=log npm run shot       기록 화면
- *   SHOT_VIEW=badges npm run shot    도전과제
+ *   SHOT_VIEW=profile npm run shot   프로필과 도전과제
  *   SHOT_VIEW=prefs npm run shot     설정
  *   SHOT_VIEW=seal npm run shot      레벨업 낙관
  *
@@ -20,7 +20,7 @@ const fs = require('node:fs');
 const ROOT = path.join(__dirname, '..');
 const SHOTS = path.join(ROOT, 'shots');
 const OUT = process.env.SHOT_OUT || path.join(SHOTS, (process.env.SHOT_VIEW || 'field') + '.png');
-const VIEW = process.env.SHOT_VIEW || 'field';
+const VIEW = process.env.SHOT_VIEW === 'badges' ? 'profile' : (process.env.SHOT_VIEW || 'field');
 
 /** 한 학기쯤 써온 사람의 기록. 화면이 비어 보이지 않게. */
 function demoState() {

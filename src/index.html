@@ -64,7 +64,7 @@
       <button class="tab is-on" data-view="field">원정</button>
       <button class="tab" data-view="sheet">시간표</button>
       <button class="tab" data-view="log">기록</button>
-      <button class="tab" data-view="badges">도전과제</button>
+      <button class="tab" data-view="profile">프로필</button>
       <button class="tab" data-view="prefs">설정</button>
     </nav>
 
@@ -149,10 +149,32 @@
       <p class="empty" id="logEmpty" hidden>기록이 쌓이면 여기에 보입니다.</p>
     </div>
 
-    <!-- 도전과제 -->
-    <div class="view" id="viewBadges" hidden>
-      <p class="lede" id="badgeCount"></p>
-      <ul class="badges" id="badges"></ul>
+    <!-- 프로필: 성장 기록과 도전과제를 한곳에 -->
+    <div class="view" id="viewProfile" hidden>
+      <div class="profile">
+        <header class="profile-header">
+          <div class="profile-emblem" aria-hidden="true">正</div>
+          <div>
+            <h2 class="profile-title">내 프로필</h2>
+            <p class="profile-subtitle">차곡차곡 쌓아온 집중의 기록</p>
+          </div>
+          <span class="profile-level" id="profileLevel">Lv.1</span>
+        </header>
+        <section class="profile-growth" aria-label="레벨 경험치">
+          <div class="profile-xp-label"><span id="profileNextLevel"></span><span id="profileXp"></span></div>
+          <div class="profile-meter" id="profileMeter" role="progressbar" aria-label="현재 레벨 경험치" aria-valuemin="0"><i id="profileFill"></i></div>
+          <p class="profile-total-xp" id="profileTotalXp"></p>
+        </section>
+        <dl class="profile-stats">
+          <div><dt>누적 집중</dt><dd id="profileFocused"></dd></div>
+          <div><dt>완주한 구간</dt><dd id="profileCompleted"></dd></div>
+          <div><dt>현재 연속 기록</dt><dd id="profileStreak"></dd><span id="profileBestStreak"></span></div>
+        </dl>
+        <section class="profile-achievements" aria-labelledby="profileAchievementsTitle">
+          <div class="profile-section-heading"><h3 id="profileAchievementsTitle">도전과제</h3><p id="badgeCount"></p></div>
+          <ul class="badges" id="badges"></ul>
+        </section>
+      </div>
     </div>
 
     <!-- 설정 -->
@@ -208,7 +230,32 @@
             <span class="switch-track" aria-hidden="true"></span>
           </label>
         </li>
+        <li>
+          <div class="pref-label">
+            <span>새 판이 나오면 알아서 받기</span>
+            <small>받아두기만 하고, 설치는 눌러야 합니다. 공부 중에 앱이 꺼지지 않게.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="prefAutoUpdate" checked>
+            <span class="switch-track" aria-hidden="true"></span>
+          </label>
+        </li>
       </ul>
+
+      <section class="upd" aria-labelledby="updTitle">
+        <div class="upd-head">
+          <h3 class="sub" id="updTitle">버전</h3>
+          <span class="upd-version" id="updVersion"></span>
+        </div>
+        <p class="upd-status" id="updStatus"></p>
+        <div class="upd-bar" id="updBar" hidden><i id="updFill"></i></div>
+        <div class="upd-acts">
+          <button type="button" class="btn btn-quiet" id="btnUpdCheck">지금 확인</button>
+          <button type="button" class="btn btn-quiet" id="btnUpdGet" hidden>받기</button>
+          <button type="button" class="btn btn-go" id="btnUpdInstall" hidden>다시 시작해서 설치</button>
+        </div>
+      </section>
+
       <p class="note" id="prefsNote"></p>
     </div>
   </section>
@@ -224,6 +271,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
+<script src="host.js"></script>
 <script src="game.js"></script>
 <script src="renderer.js"></script>
 </body>

@@ -1,6 +1,6 @@
 # Quest Timer
 
-퀘스트를 깨듯 공부하는 집중 타이머. Windows 데스크톱 앱(Electron).
+퀘스트를 깨듯 공부하는 집중 타이머. Windows 데스크톱 앱(WebView2 + .NET Framework 4.8).
 
 할 일을 퀘스트로 적어두고, 원하는 길이만큼 타이머를 돌린다. 끝내면 경험치가
 쌓이고 레벨이 오르고, 오늘 완주한 구간만큼 正자에 획이 늘어난다.
@@ -9,10 +9,25 @@
 
 ## 쓰는 법
 
+`dist-webview2/Quest Timer 1.1.0 WebView2.zip`을 전부 풀고 `Quest Timer.exe`를 실행한다.
+옆의 DLL과 `www` 폴더도 필요하다. 앱 폴더는 약 1.06 MiB, ZIP은 약 0.35 MiB다.
+공유 WebView2 런타임의 설치 용량과 사용자 캐시는 이 수치에 포함되지 않는다.
+
+Windows 10/11 x64, .NET Framework 4.8 이상, Evergreen WebView2 Runtime이 필요하다.
+WebView2가 없으면 공식 다운로드 페이지를 안내한다. .NET Framework를 별도로 포함하지 않으며
+Windows 11 기본 구성에서 실행할 수 있다. 실제 배포 전 대상 PC 구성은 확인해야 한다.
+
+소스에서 빌드하려면 .NET SDK가 필요하다. NuGet의 Microsoft WebView2 SDK와
+.NET Framework 참조 패키지는 첫 빌드에 내려받는다. 빌드 스크립트는 Node 없이도 실행 가능하다.
+
 ```
-npm install      처음 한 번
-npm start        앱 실행
+npm start        WebView2 빌드 후 실행
+npm run dist     WebView2 폴더와 ZIP 만들기
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1
 ```
+
+Electron 버전은 비교·회귀 확인용으로 남겨뒀다. `npm install`은 Electron 도구가 필요할 때만
+실행한다. `npm run start:electron` / `npm run dist:electron`으로 이전 방식을 사용할 수 있다.
 
 ## 규칙
 
@@ -61,22 +76,38 @@ Lv.9→10 은 580점. Lv.10 이면 누적 25시간쯤 된다.
 **도전과제** 11개. 첫 완주, 하루 네 번, 90분 한 번에, 3·7·30일 연속,
 누적 10·50시간, 퀘스트 10개, Lv.10, 새벽 1시~4시 완주.
 
+**프로필** — 레벨과 다음 레벨까지의 경험치, 누적 집중 시간, 완주 횟수,
+현재·최고 연속 기록을 한눈에 본다. 도전과제는 프로필 아래에 통합되어 있다.
+
 ## 구조
 
 ```
-main.js         창, 저장, 완료 알림
-preload.js      렌더러에 열어주는 창구 (window.api)
+native/         Windows 창, WebView2, 원자적 저장, 이전 기록 가져오기, 알림
+src/host.js     WebView2 메시지 ↔ window.api 어댑터
+main.js         이전 Electron 실행기 (비교용)
+preload.js      이전 Electron의 window.api
 src/game.js     경험치·레벨·연속일·도전과제 계산. DOM 을 모른다
 src/renderer.js 화면과 타이머
-src/styles.css  「원정 기록부」 - 쪽빛 바탕에 먹으로 쓴 기록
+src/styles.css  다크 모드, 원형 타이머, 잔잔한 블러와 패널 접기
 test/           game.js 단위 테스트
 scripts/        스크린샷·스모크 테스트 도구
 ```
 
-기록은 이 컴퓨터에만 저장된다. `%APPDATA%\Quest Timer\data.json`
-(정확한 위치는 설정 화면 아래에 적혀 있다). 임시 파일에 먼저 쓰고 이름을 바꾸는
+기록은 이 컴퓨터에만 저장된다. `%APPDATA%\Quest Timer WebView2\data.json`.
+임시 파일을 디스크에 먼저 쓰고 원자적으로 교체하는
 방식이라 앱이 죽거나 전원이 꺼져도 파일이 반토막 나지 않고, 직전 파일을
 `data.json.bak` 으로 한 벌 남긴다.
+
+첫 실행 시 이전 `%APPDATA%\Quest Timer` 등의 `data.json` 또는 정상 백업을 복사해 가져온다.
+원본은 수정하지 않으며 `electron-original.json`으로도 보관한다. 새 앱에 기록이 있으면
+다시 가져오지 않는다. 이전 앱과 새 앱의 이후 기록은 동기화되지 않는다.
+WebView2 프로필/캐시는 새 저장 폴더 아래 `WebView2/`에 저장된다.
+기록과 백업이 모두 손상됐으면 새 데이터로 덮어쓰지 않고 오류를 표시한다.
+
+타이머는 절대 종료 시각을 사용하고 Windows 호스트에서도 감시한다. 최소화 중에도
+완주를 처리하며 절전 복귀/잠금 해제 시 재계산한다. 앱을 종료하면 진행 중 타이머도 종료된다.
+완료 시 시스템 트레이 알림과 작업 표시줄 점멸을 사용한다. Windows 알림 설정에 따라
+시스템 알림 표시가 제한될 수 있으며, 앱 안의 반복 소리·완료 배너는 유지된다.
 
 레벨과 연속일은 저장하지 않는다. 누적 경험치와 세션 기록에서 그때그때 계산한다.
 저장값과 계산값이 어긋날 여지를 없애기 위한 선택이다.
@@ -85,8 +116,9 @@ scripts/        스크린샷·스모크 테스트 도구
 
 ```
 npm test         game.js 규칙 테스트 (32개)
-npm run smoke    실제 앱을 띄워 퀘스트·요일·+5분·완주·알림을 훑는다 (49개, 약 95초)
-npm run shot     화면을 shots/ 에 PNG 로 뜬다
+npm run smoke    배포한 WebView2 앱의 기록 이전·복구·+5분·최소화 완주·재로드 검증 (약 80초)
+npm run shot     이전 Electron 도구로 화면을 shots/ 에 PNG 로 뜬다
+npm run smoke:electron  이전 Electron 회귀 테스트
 ```
 
 `npm run shot` 은 예시 데이터를 물려서 찍는다. 화면을 골라 찍을 수도 있다.
@@ -101,43 +133,17 @@ SHOT_VIEW=seal    npm run shot
 ```
 
 `npm run smoke` 는 임시 폴더에 저장하므로 평소 쓰는 기록에 손대지 않는다.
-진행 상황은 `shots/smoke.log` 에 한 줄씩 쌓인다 (Electron 메인 프로세스의
-stdout 은 파이프로 넘길 때 버퍼링돼서 도중에 멈추면 보이지 않는다).
+출력에 표시되는 임시 폴더의 `smoke.log`에 진행 결과가 쌓이며 스크린샷도 저장된다.
+이 테스트는 사용자 기록을 읽거나 수정하지 않는다.
 
 ## 화면
 
-| | |
-|---|---|
-| ![시간표](shots/sheet.png) | ![퀘스트 적기](shots/compose.png) |
-| ![기록](shots/log.png) | ![도전과제](shots/badges.png) |
-| ![설정](shots/prefs.png) | ![레벨업](shots/seal.png) |
-| ![집중하는 중](shots/running.png) | ![완주 알림](shots/alarm.png) |
 
-## 설치 파일 만들기
+|                              |                              |
+| ---------------------------- | ---------------------------- |
+| ![시간표](shots/sheet.png)      | ![퀘스트 적기](shots/compose.png) |
+| ![기록](shots/log.png)         | ![도전과제](shots/badges.png)    |
+| ![설정](shots/prefs.png)       | ![레벨업](shots/seal.png)       |
+| ![집중하는 중](shots/running.png) | ![완주 알림](shots/alarm.png)    |
 
-```
-npm run icon     아이콘을 다시 그린다 (build/icon.ico)
-npm run dist     설치 파일과 무설치 exe 를 dist/ 에 만든다
-npm run pack     묶기만 하고 설치 파일은 안 만든다 (빠른 확인용)
-```
 
-`dist/` 에 두 가지가 나온다.
-
-- **Quest Timer Setup 1.0.1.exe** — 설치 파일. 시작 메뉴와 바탕화면에 바로가기를
-  만든다. 완료 알림에 앱 아이콘이 제대로 붙으려면 이쪽으로 설치해야 한다
-  (Windows 는 시작 메뉴 바로가기의 AppUserModelId 로 아이콘을 찾는다).
-- **Quest Timer 1.0.1 portable.exe** — 설치 없이 바로 실행. 알림 아이콘은
-  Electron 것으로 뜬다.
-
-아이콘은 `scripts/make-icon.js` 가 그린다. 이미지 편집 도구 없이 Electron 으로
-렌더해서 여러 크기를 담은 ico 로 묶는다. 크기별로 그림이 다르다 — 64px 이상은
-링 + 正 한 글자, 48px 이하는 링만 굵게. 작은 아이콘에 큰 그림을 줄이면 뭉개진다.
-
-`package.json` 의 `build.appId` 와 `main.js` 의 `APP_ID` 는 같아야 한다 (`com.questtimer.app`).
-어긋나면 알림이 앱 것으로 인식되지 않는다.
-
-### 서명은 하지 않았다
-
-코드 서명 인증서가 없으므로 설치할 때 Windows SmartScreen 이 "알 수 없는
-발행자" 경고를 띄운다. **추가 정보 → 실행**으로 넘어갈 수 있다. 경고를 없애려면
-코드 서명 인증서가 필요하다.

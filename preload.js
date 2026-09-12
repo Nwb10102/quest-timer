@@ -26,6 +26,14 @@ contextBridge.exposeInMainWorld('api', {
   /** 절전에서 깨어나 화면을 다시 맞춰야 할 때 */
   onResync: (fn) => ipcRenderer.on('timer:resync', () => fn()),
 
+  /** 업데이트: 현재 버전과 진행 상태 */
+  getUpdate: () => ipcRenderer.invoke('update:get'),
+  setAutoUpdate: (on) => ipcRenderer.invoke('update:auto', on),
+  checkUpdate: () => ipcRenderer.send('update:check'),
+  downloadUpdate: () => ipcRenderer.send('update:download'),
+  installUpdate: () => ipcRenderer.send('update:install'),
+  onUpdateState: (fn) => ipcRenderer.on('update:state', (_e, s) => fn(s)),
+
   /** 스크린샷 스크립트용 - 화면이 다 그려졌다는 신호 */
   signalReady: () => ipcRenderer.send('renderer:ready'),
 });

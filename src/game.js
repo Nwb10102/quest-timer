@@ -27,6 +27,7 @@
     sound: true,
     alwaysOnTop: false,
     defaultMinutes: 25,
+    autoUpdate: true,      // 새 판이 올라오면 알아서 받아둔다 (설치는 눌러야 한다)
   };
 
   function defaultState() {

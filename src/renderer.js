@@ -39,12 +39,16 @@
     badges: $('badges'), badgeCount: $('badgeCount'),
     prefBoundary: $('prefBoundary'), prefStreakMin: $('prefStreakMin'),
     prefDefaultMin: $('prefDefaultMin'), prefSound: $('prefSound'), prefOnTop: $('prefOnTop'),
+    prefAutoUpdate: $('prefAutoUpdate'),
+    updVersion: $('updVersion'), updStatus: $('updStatus'),
+    updBar: $('updBar'), updFill: $('updFill'),
+    btnUpdCheck: $('btnUpdCheck'), btnUpdGet: $('btnUpdGet'), btnUpdInstall: $('btnUpdInstall'),
     prefsNote: $('prefsNote'),
     sealStage: $('sealStage'), sealLevel: $('sealLevel'), sealCaption: $('sealCaption'),
     toast: $('toast'),
     views: {
       field: $('viewField'), sheet: $('viewSheet'), log: $('viewLog'),
-      badges: $('viewBadges'), prefs: $('viewPrefs'),
+      profile: $('viewProfile'), prefs: $('viewPrefs'),
     },
   };
 
@@ -83,6 +87,10 @@
   let lastTallyCount = null;
   let undoBin = null;
   let toastTimer = null;
+  let upd = { status: 'idle', version: null, percent: 0, error: null };
+  let appVersion = '';
+  let updPackaged = false;
+  let sawReady = false;
   let panelCollapsed = false;
   let panelBeforeFocus = false;
   let focusSession = false;
@@ -144,6 +152,24 @@
 
     api.onElapsed(() => finalize(true));
     api.onResync(() => { if (run.mode === 'live') tick(); });
+
+    // 업데이트 상태. WebView2 호스트(src/host.js)에는 이 창구가 없으므로
+    // 있는지 먼저 확인한다. 없으면 설정의 버전 구역을 감춘다.
+    if (typeof api.getUpdate === 'function') {
+      try {
+        api.setAutoUpdate(state.settings.autoUpdate !== false);
+        api.onUpdateState((next) => { upd = next; paintUpdate(); });
+        const info = await api.getUpdate();
+        appVersion = info.version;
+        updPackaged = info.packaged;
+        upd = info.update;
+      } catch (_) {
+        upd = { status: 'none', version: null, percent: 0, error: null };
+      }
+    } else {
+      upd = { status: 'none', version: null, percent: 0, error: null };
+    }
+    paintUpdate();
 
     // 스크린샷 스크립트에 "다 그렸다"고 알린다
     requestAnimationFrame(() => requestAnimationFrame(() => api.signalReady()));
@@ -873,10 +899,27 @@
   }
 
   // ── 그리기: 도전과제 ───────────────────────────────────
+  function renderProfile() {
+    const lv = G.levelOf(state.totalXp);
+    const streak = G.computeStreak(state.sessions, state.settings);
+    $('profileLevel').textContent = 'Lv.' + lv.level;
+    $('profileNextLevel').textContent = '다음 레벨까지 ' + (lv.xpNeeded - lv.xpInLevel).toLocaleString('ko-KR') + ' XP';
+    $('profileXp').textContent = lv.xpInLevel.toLocaleString('ko-KR') + ' / ' + lv.xpNeeded.toLocaleString('ko-KR') + ' XP';
+    $('profileFill').style.width = (lv.xpInLevel / lv.xpNeeded * 100).toFixed(1) + '%';
+    $('profileMeter').setAttribute('aria-valuenow', lv.xpInLevel);
+    $('profileMeter').setAttribute('aria-valuemax', lv.xpNeeded);
+    $('profileTotalXp').textContent = '누적 경험치 ' + state.totalXp.toLocaleString('ko-KR') + ' XP';
+    $('profileFocused').textContent = G.formatDuration(G.totalFocusedSec(state.sessions));
+    $('profileCompleted').textContent = state.sessions.filter(s => s.completed).length.toLocaleString('ko-KR') + '번';
+    $('profileStreak').textContent = streak.current + '일';
+    $('profileBestStreak').textContent = '최고 ' + streak.best + '일';
+    renderBadges();
+  }
+
   function renderBadges() {
     const have = state.achievements || {};
     const open = G.ACHIEVEMENTS.filter((a) => have[a.id]).length;
-    el.badgeCount.textContent = G.ACHIEVEMENTS.length + '개 중 ' + open + '개를 얻었습니다.';
+    el.badgeCount.textContent = open + ' / ' + G.ACHIEVEMENTS.length + ' 달성';
 
     el.badges.textContent = '';
     for (const def of G.ACHIEVEMENTS) {
@@ -909,6 +952,7 @@
     el.prefDefaultMin.value = state.settings.defaultMinutes;
     el.prefSound.checked = !!state.settings.sound;
     el.prefOnTop.checked = !!state.settings.alwaysOnTop;
+    el.prefAutoUpdate.checked = state.settings.autoUpdate !== false;
     el.prefsNote.textContent =
       '기록은 이 컴퓨터에만 저장됩니다. 집중 1분에 경험치 2점, 완주하면 20% 더, '
       + '일일 퀘스트를 완주하면 30점이 더 붙습니다.';
@@ -920,7 +964,67 @@
     renderField();
     renderSheet();
     renderLog();
-    renderBadges();
+    renderProfile();
+  }
+
+  // ── 업데이트 ───────────────────────────────────────────
+  function paintUpdate() {
+    // 이 호스트가 업데이트를 못 다루면 구역째로 감춘다
+    const off = upd.status === 'none';
+    $('updTitle').closest('.upd').hidden = off;
+    el.prefAutoUpdate.closest('li').hidden = off;
+    if (off) return;
+
+    el.updVersion.textContent = appVersion ? 'v' + appVersion : '';
+
+    const pct = Math.max(0, Math.min(100, upd.percent || 0));
+    el.updBar.hidden = upd.status !== 'downloading';
+    el.updFill.style.width = pct + '%';
+
+    el.btnUpdCheck.hidden = upd.status === 'downloading' || upd.status === 'ready';
+    el.btnUpdCheck.disabled = upd.status === 'checking';
+    el.btnUpdGet.hidden = upd.status !== 'available';
+    el.btnUpdInstall.hidden = upd.status !== 'ready';
+
+    el.updStatus.classList.toggle('is-ready', upd.status === 'ready');
+    el.updStatus.classList.toggle('is-error', upd.status === 'error');
+    el.updStatus.textContent = '';
+
+    const strong = (t) => { const b = document.createElement('b'); b.textContent = t; return b; };
+
+    switch (upd.status) {
+      case 'dev':
+        el.updStatus.append('개발 중 실행에서는 업데이트를 확인하지 않습니다. 설치한 앱에서만 동작합니다.');
+        break;
+      case 'checking':
+        el.updStatus.append('새 판이 있는지 확인하는 중...');
+        break;
+      case 'current':
+        el.updStatus.append('최신 판을 쓰고 있습니다.');
+        break;
+      case 'available':
+        el.updStatus.append(strong('v' + upd.version), ' 이 나왔습니다.');
+        break;
+      case 'downloading':
+        el.updStatus.append('v' + upd.version + ' 받는 중 ', strong(pct + '%'));
+        break;
+      case 'ready':
+        el.updStatus.append(strong('v' + upd.version), ' 을 받아뒀습니다. 다시 시작하면 적용됩니다.');
+        break;
+      case 'error':
+        el.updStatus.append(strong('확인 실패'), ' — ' + (upd.error || '알 수 없는 문제'));
+        break;
+      default:
+        el.updStatus.append(updPackaged ? '아직 확인하지 않았습니다.' : '');
+    }
+
+    // 받아둔 판이 있으면 어느 탭에 있어도 한 번 알려준다
+    if (upd.status === 'ready' && !sawReady) {
+      sawReady = true;
+      say('v' + upd.version + ' 을 받아뒀습니다.', false,
+        { label: '다시 시작', run: () => api.installUpdate(), strong: true });
+    }
+    if (upd.status !== 'ready') sawReady = false;
   }
 
   // ── 낙관과 토스트 ──────────────────────────────────────
@@ -1052,6 +1156,23 @@
       else stopAlarm();
       save();
     });
+    el.prefAutoUpdate.addEventListener('change', async () => {
+      state.settings.autoUpdate = el.prefAutoUpdate.checked;
+      await api.setAutoUpdate(state.settings.autoUpdate);
+      // 켜는 순간 이미 나온 판이 있으면 바로 받는다
+      if (state.settings.autoUpdate && upd.status === 'available') api.downloadUpdate();
+      save();
+    });
+
+    el.btnUpdCheck.addEventListener('click', () => api.checkUpdate());
+    el.btnUpdGet.addEventListener('click', () => api.downloadUpdate());
+    el.btnUpdInstall.addEventListener('click', () => {
+      if (run.mode === 'live' || run.mode === 'held') {
+        return say('구간이 진행 중입니다. 끝낸 뒤에 설치해 주세요.');
+      }
+      api.installUpdate();
+    });
+
     el.prefOnTop.addEventListener('change', async () => {
       state.settings.alwaysOnTop = el.prefOnTop.checked;
       const applied = await api.setAlwaysOnTop(state.settings.alwaysOnTop);
@@ -1137,7 +1258,7 @@
     });
     if (name === 'sheet') renderSheet();
     if (name === 'log') renderLog();
-    if (name === 'badges') renderBadges();
+    if (name === 'profile') renderProfile();
   }
 
   boot();

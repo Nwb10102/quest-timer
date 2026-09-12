@@ -6,6 +6,7 @@
 'use strict';
 
 const { app, BrowserWindow, ipcMain, Notification, powerMonitor, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const fs = require('node:fs');
 
@@ -161,6 +162,67 @@ function rearmAfterResume() {
   if (armed) arm(armed.endsAt, armed.title);
 }
 
+// ── 업데이트 ────────────────────────────────────────────────
+// GitHub 릴리스를 보고 새 판을 받아온다. 받는 것까지는 알아서 하지만
+// 설치는 반드시 사용자가 눌러야 한다 - 공부 중에 앱이 꺼지면 안 된다.
+const CHECK_EVERY_MS = 6 * 3600 * 1000;
+
+let update = { status: 'idle', version: null, percent: 0, error: null };
+let wantAutoDownload = true;
+let checkTimer = null;
+
+function pushUpdate(patch) {
+  update = Object.assign({}, update, patch);
+  if (win && !win.isDestroyed()) win.webContents.send('update:state', update);
+}
+
+function initUpdater() {
+  // 개발 중에는 동작하지 않는다. 패키징된 앱에만 의미가 있다.
+  if (!app.isPackaged) {
+    update = { status: 'dev', version: null, percent: 0, error: null };
+    return;
+  }
+
+  autoUpdater.autoDownload = false;        // 받을지는 아래에서 판단한다
+  autoUpdater.autoInstallOnAppQuit = true; // 받아뒀으면 앱을 닫을 때 적용된다
+
+  autoUpdater.on('checking-for-update', () => pushUpdate({ status: 'checking', error: null }));
+  autoUpdater.on('update-not-available', () => pushUpdate({ status: 'current', percent: 0 }));
+  autoUpdater.on('update-available', (info) => {
+    pushUpdate({ status: 'available', version: info && info.version, percent: 0 });
+    if (wantAutoDownload) downloadUpdate();
+  });
+  autoUpdater.on('download-progress', (p) => {
+    pushUpdate({ status: 'downloading', percent: Math.round((p && p.percent) || 0) });
+  });
+  autoUpdater.on('update-downloaded', (info) => {
+    pushUpdate({ status: 'ready', version: info && info.version, percent: 100 });
+  });
+  autoUpdater.on('error', (err) => {
+    pushUpdate({ status: 'error', error: (err && err.message) ? err.message : String(err) });
+  });
+
+  // 실행 직후는 창 띄우는 일이 급하니 조금 미뤄서 확인한다
+  setTimeout(checkUpdate, 4000);
+  checkTimer = setInterval(checkUpdate, CHECK_EVERY_MS);
+}
+
+function checkUpdate() {
+  if (!app.isPackaged) return;
+  // 이미 받아둔 판이 있으면 다시 확인할 필요가 없다
+  if (update.status === 'downloading' || update.status === 'ready') return;
+  autoUpdater.checkForUpdates().catch((err) => {
+    pushUpdate({ status: 'error', error: (err && err.message) ? err.message : String(err) });
+  });
+}
+
+function downloadUpdate() {
+  if (!app.isPackaged) return;
+  autoUpdater.downloadUpdate().catch((err) => {
+    pushUpdate({ status: 'error', error: (err && err.message) ? err.message : String(err) });
+  });
+}
+
 // ── 앱 수명주기 ─────────────────────────────────────────────
 // 두 인스턴스가 같은 data.json 에 쓰면 기록이 깨진다.
 if (!app.requestSingleInstanceLock()) {
@@ -192,7 +254,22 @@ if (!app.requestSingleInstanceLock()) {
     });
     ipcMain.on('timer:disarm', () => disarm());
 
+    ipcMain.handle('update:get', () => ({
+      version: app.getVersion(),
+      packaged: app.isPackaged,
+      update: update,
+    }));
+    ipcMain.handle('update:auto', (_e, on) => { wantAutoDownload = !!on; return wantAutoDownload; });
+    ipcMain.on('update:check', () => checkUpdate());
+    ipcMain.on('update:download', () => downloadUpdate());
+    ipcMain.on('update:install', () => {
+      if (!app.isPackaged || update.status !== 'ready') return;
+      flushSave();                 // 기록을 먼저 디스크에 내린다
+      autoUpdater.quitAndInstall();
+    });
+
     createWindow();
+    initUpdater();
 
     powerMonitor.on('resume', rearmAfterResume);
     powerMonitor.on('unlock-screen', rearmAfterResume);
@@ -203,7 +280,10 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   // 저장은 종료 전에 반드시 한 번 동기로 비운다
-  app.on('before-quit', flushSave);
+  app.on('before-quit', () => {
+    if (checkTimer) { clearInterval(checkTimer); checkTimer = null; }
+    flushSave();
+  });
   app.on('window-all-closed', () => {
     flushSave();
     if (process.platform !== 'darwin') app.quit();

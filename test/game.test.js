@@ -361,6 +361,17 @@ test('도전과제 - 새로 해금된 것만 돌려준다', () => {
   assert.deepEqual(G.newlyUnlocked(state, now), ['long-90']);
 });
 
+test('기본 설정값', () => {
+  const st = G.defaultState().settings;
+  assert.equal(st.dayBoundaryHour, 4);
+  assert.equal(st.streakMinMinutes, 20);
+  assert.equal(st.defaultMinutes, 25);
+  assert.equal(st.sound, true);
+  assert.equal(st.alwaysOnTop, false);
+  // 새 판은 알아서 받아둔다 (설치는 사용자가 누른다)
+  assert.equal(st.autoUpdate, true);
+});
+
 test('기본 상태는 호출마다 독립적이다', () => {
   const a = G.defaultState();
   const b = G.defaultState();
