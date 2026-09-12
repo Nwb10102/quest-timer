@@ -232,7 +232,7 @@ namespace QuestTimer
                     if (pending.ChecksumUrl != null)
                     {
                         var published = await client.GetStringAsync(pending.ChecksumUrl).ConfigureAwait(true);
-                        Verify(zipPath, published, pending.Name);
+                        Verify(zipPath, published);
                     }
                 }
 
@@ -255,7 +255,7 @@ namespace QuestTimer
         }
 
         /// <summary>체크섬 파일에서 이 zip 의 sha256 을 찾아 대조한다.</summary>
-        private static void Verify(string zipPath, string published, string name)
+        private static void Verify(string zipPath, string published)
         {
             string actual;
             using (var sha = SHA256.Create())
@@ -276,9 +276,9 @@ namespace QuestTimer
                 .ToList();
             if (hashes.Count == 0) return;   // 형식을 모르면 그냥 넘어간다
 
-            var mine = hashes.FirstOrDefault(x => x.Line.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
-                       ?? hashes[0];
-            if (!string.Equals(mine.Hash, actual, StringComparison.OrdinalIgnoreCase))
+            // 이름으로 줄을 찾지 않고 해시를 직접 맞춰본다. GitHub 는 올릴 때
+            // 파일명의 공백을 점으로 바꾸므로 체크섬 파일 안의 이름과 어긋난다.
+            if (!hashes.Any(x => string.Equals(x.Hash, actual, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidDataException("받은 파일의 체크섬이 맞지 않습니다. 내려받기를 다시 시도해 주세요.");
         }
 
