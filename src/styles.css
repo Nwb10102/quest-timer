@@ -1,0 +1,898 @@
+/*
+ * styles.css - 「원정 기록부」
+ *
+ * 쪽빛 종이에 먹으로 쓴 기록부. 공부 한 세션은 행군 한 구간이고,
+ * 완주하면 正자에 획이 하나 늘고, 레벨이 오르면 낙관이 찍힌다.
+ *
+ * 준비 화면의 색은 집중을 시작하면 조용히 사라진다.
+ */
+
+:root {
+  color-scheme: dark;
+  --jjok:       #101113;  /* 차콜 - 바탕 */
+  --jjok-deep:  #18191C;  /* 움푹한 면 */
+  --jjok-line:  #2C2E34;  /* 실선 */
+  --hanji:      #EDF0F7;  /* 본문 */
+  --meok-mute:  #A0ABC2;  /* 보조 */
+  --juhong:     #CE3B2C;  /* 주홍 - 낙관, 연속일, 완주 */
+  --cheongja:   #A1B5E5;  /* 푸른빛 - 진행 중 */
+  --geum:       #D2A93B;  /* 금 - 레벨/XP 전용 */
+
+  --han: "Malgun Gothic", "맑은 고딕", "NanumGothic", system-ui, sans-serif;
+  --num: "Bahnschrift SemiCondensed", "Bahnschrift", "DIN Alternate",
+         "Segoe UI", var(--han);
+
+  --strip-h: 44px;
+  --rail-w: 264px;
+  /* Windows 네이티브 창 버튼(최소화/최대화/닫기)이 차지하는 오른쪽 폭 */
+  --wincontrols: 150px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--jjok);
+  color: var(--hanji);
+  font: 14px/1.6 var(--han);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  cursor: default;
+  user-select: none;
+}
+
+button, input { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--cheongja);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--jjok-line);
+  border: 3px solid var(--jjok);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--meok-mute); }
+
+/* ── 제목줄 ─────────────────────────────────────────────── */
+.strip {
+  height: var(--strip-h);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 var(--wincontrols) 0 20px;
+  border-bottom: 1px solid var(--jjok-line);
+  -webkit-app-region: drag;
+}
+
+.wordmark {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.rank {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rank-level {
+  font-family: var(--num);
+  font-variation-settings: "wdth" 87.5, "wght" 600;
+  font-stretch: 87.5%;
+  font-size: 15px;
+  color: var(--geum);
+  letter-spacing: 0.02em;
+}
+
+.rank-meter {
+  width: 104px;
+  height: 5px;
+  background: var(--jjok-deep);
+  box-shadow: inset 0 0 0 1px var(--jjok-line);
+  overflow: hidden;
+}
+.rank-meter i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--geum);
+  transition: width 0.45s ease-out;
+}
+
+.rank-xp {
+  font-family: var(--num);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--meok-mute);
+  min-width: 62px;
+}
+
+/* ── 골격 ───────────────────────────────────────────────── */
+.body {
+  height: calc(100% - var(--strip-h));
+  display: grid;
+  grid-template-columns: var(--rail-w) 1fr;
+}
+
+/* ── 퀘스트 목록 ────────────────────────────────────────── */
+.rail {
+  border-right: 1px solid var(--jjok-line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.rail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 12px 8px;
+}
+
+.group { margin-bottom: 20px; }
+.group[hidden] { display: none; }
+
+.group-name {
+  margin: 0 0 4px;
+  padding: 0 10px 6px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--meok-mute);
+  border-bottom: 1px solid var(--jjok-line);
+}
+
+.quests { list-style: none; margin: 0; padding: 0; }
+
+.quest {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 8px;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+.quest:hover { background: var(--jjok-deep); }
+.quest.is-on {
+  background: var(--jjok-deep);
+  border-left-color: var(--juhong);
+}
+
+.quest-title {
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quest.is-on .quest-title { font-weight: 600; }
+
+.quest-min {
+  font-family: var(--num);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--meok-mute);
+}
+
+.quest.is-done .quest-title {
+  color: var(--meok-mute);
+  text-decoration: line-through;
+  text-decoration-color: var(--jjok-line);
+}
+.quest.is-done .quest-min { color: var(--juhong); }
+
+.quest-drop {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--meok-mute);
+  opacity: 0;
+  cursor: pointer;
+  line-height: 1;
+}
+.quest:hover .quest-drop { opacity: 1; }
+.quest-drop:hover { color: var(--juhong); }
+
+.rail-empty {
+  margin: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--meok-mute);
+}
+
+/* 새 퀘스트 적기 */
+.compose {
+  border-top: 1px solid var(--jjok-line);
+  padding: 10px 12px 14px;
+}
+
+.compose-open {
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: 0;
+  background: none;
+  color: var(--meok-mute);
+  font-size: 13px;
+  cursor: pointer;
+}
+.compose-open::before { content: "+ "; }
+.compose-open:hover { color: var(--hanji); }
+
+.compose-fields { padding: 4px 2px 0; }
+.compose-fields[hidden] { display: none; }
+
+#questTitle {
+  width: 100%;
+  padding: 7px 9px;
+  background: var(--jjok-deep);
+  border: 1px solid var(--jjok-line);
+  border-radius: 2px;
+  font-size: 13.5px;
+}
+#questTitle::placeholder { color: var(--meok-mute); }
+
+.compose-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 9px;
+}
+
+.minutes {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--meok-mute);
+  font-size: 12px;
+}
+.minutes input {
+  width: 54px;
+  padding: 4px 6px 4px 2px;
+  text-align: right;
+  font-family: var(--num);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--hanji);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--jjok-line);
+}
+.minutes input:focus { border-bottom-color: var(--cheongja); outline: none; }
+
+/* ── 요일 칩 ────────────────────────────────────────────────
+   종류 선택을 겸한다. 하나도 안 고르면 한 번만 하는 퀘스트,
+   고르면 그 요일마다 되살아나는 일일 퀘스트가 된다. */
+.days {
+  display: flex;
+  gap: 3px;
+  margin-top: 10px;
+}
+
+.dchip {
+  position: relative;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--jjok-line);
+  border-radius: 2px;
+  background: none;
+  color: var(--meok-mute);
+  font-size: 12px;
+  cursor: pointer;
+}
+.dchip:hover { color: var(--hanji); border-color: var(--meok-mute); }
+.dchip.is-on {
+  background: var(--cheongja);
+  border-color: var(--cheongja);
+  color: var(--jjok);
+  font-weight: 600;
+}
+/* 오늘 표시. 절대 위치라 글자를 밀지 않는다. */
+.dchip.is-today::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  border-radius: 50%;
+  background: var(--juhong);
+}
+.dchip.is-on.is-today::after { background: var(--jjok); }
+
+.days-hint {
+  margin: 7px 0 0;
+  font-size: 11.5px;
+  color: var(--meok-mute);
+  min-height: 1.4em;
+}
+.days-hint b { color: var(--cheongja); font-weight: 400; }
+
+/* ── 버튼 ───────────────────────────────────────────────── */
+.btn {
+  padding: 9px 18px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+.btn-go {
+  background: var(--hanji);
+  color: var(--jjok);
+  font-weight: 600;
+  padding-inline: 32px;
+}
+.btn-go:hover { background: #fff; }
+.btn-quiet { border-color: var(--jjok-line); color: var(--hanji); }
+.btn-quiet:hover { border-color: var(--meok-mute); }
+.btn-plain { color: var(--meok-mute); padding-inline: 12px; }
+.btn-plain:hover { color: var(--hanji); }
+.btn[hidden] { display: none; }
+
+/* ── 화면 ───────────────────────────────────────────────── */
+.content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 28px 0;
+  flex: none;
+}
+
+.tab {
+  position: relative;
+  padding: 6px 10px 10px;
+  border: 0;
+  background: none;
+  color: var(--meok-mute);
+  font-size: 13px;
+  cursor: pointer;
+}
+.tab:hover { color: var(--hanji); }
+.tab.is-on { color: var(--hanji); }
+.tab.is-on::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--cheongja);
+}
+
+.view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 28px 26px;
+  display: flex;
+  flex-direction: column;
+}
+.view[hidden] { display: none; }
+
+/* ── 원정 ───────────────────────────────────────────────── */
+.field-core {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.field-eyebrow {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--meok-mute);
+}
+
+.field-title {
+  margin: 2px 0 0;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.4;
+  max-width: 30ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.field-title.is-blank { color: var(--meok-mute); font-weight: 400; }
+
+.clock {
+  margin-top: 14px;
+  font-family: var(--num);
+  font-variation-settings: "wdth" 85, "wght" 650;
+  font-stretch: 85%;
+  font-weight: 600;
+  font-size: clamp(92px, 14.5vw, 172px);
+  line-height: 0.92;
+  letter-spacing: 0.005em;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+.clock.is-held { color: var(--meok-mute); }
+.clock.is-done { color: var(--juhong); }
+
+.dial {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 26px;
+}
+.dial[hidden] { display: none; }
+
+.minutes-lg input {
+  width: 84px;
+  font-size: 28px;
+  padding-bottom: 2px;
+}
+.minutes-lg span { font-size: 13px; }
+
+.chips { display: flex; gap: 4px; }
+.chip {
+  min-width: 38px;
+  padding: 5px 8px;
+  border: 1px solid var(--jjok-line);
+  border-radius: 2px;
+  background: none;
+  color: var(--meok-mute);
+  font-family: var(--num);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.chip:hover { color: var(--hanji); border-color: var(--meok-mute); }
+.chip.is-on { color: var(--jjok); background: var(--meok-mute); border-color: var(--meok-mute); }
+
+.acts { display: flex; align-items: center; gap: 8px; margin-top: 26px; }
+
+/* 돌아가는 중 시간을 더하는 버튼. 버튼 줄에 함께 앉아 높이를 늘리지 않는다. */
+.chip-wide {
+  min-width: 58px;
+  padding: 10px 13px;   /* .btn 과 같은 높이가 되게 */
+  font-size: 13px;
+}
+.chip-wide[hidden] { display: none; }
+.chip-wide:disabled {
+  color: var(--jjok-line);
+  border-color: var(--jjok-line);
+  cursor: default;
+}
+
+.today {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--jjok-line);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* 正자 집계 */
+.tally { display: flex; align-items: center; gap: 9px; min-height: 30px; }
+.tally svg { width: 30px; height: 30px; display: block; }
+.tally path {
+  fill: none;
+  stroke: var(--hanji);
+  stroke-width: 1.55;
+  stroke-linecap: round;
+}
+.tally path.is-ghost { stroke: var(--jjok-line); }
+.tally path.is-fresh { animation: draw-in 0.45s ease-out both; }
+
+.today-text { margin: 0; font-size: 12.5px; color: var(--meok-mute); }
+.today-text b { color: var(--juhong); font-weight: 600; font-family: var(--num); }
+
+/* ── 시간표 ─────────────────────────────────────────────────
+   퀘스트 × 요일 격자. 칸 하나가 "이 퀘스트가 그 요일에 나오는가"다. */
+.sheet {
+  display: grid;
+  grid-template-columns: minmax(150px, 232px) repeat(7, 36px) 62px 26px;
+  justify-content: start;
+  align-items: center;
+  flex: none;
+  margin-bottom: 4px;
+}
+.sheet:empty { display: none; }
+
+.s-head {
+  font-size: 11.5px;
+  color: var(--meok-mute);
+  text-align: center;
+  padding: 0 0 7px;
+  border-bottom: 1px solid var(--jjok-line);
+}
+.s-head-name { text-align: left; }
+.s-head.s-min-head { text-align: right; padding-right: 4px; }
+.s-head.is-today { color: var(--hanji); }
+
+.s-name {
+  font-size: 13.5px;
+  padding: 7px 10px 7px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.s-cell {
+  justify-self: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--jjok-line);
+  border-radius: 2px;
+  background: none;
+  cursor: pointer;
+}
+.s-cell:hover { border-color: var(--meok-mute); }
+.s-cell.is-on { background: var(--cheongja); border-color: var(--cheongja); }
+.s-cell.is-today { border-color: var(--meok-mute); }
+
+.s-min { justify-self: end; }
+.s-min input {
+  width: 52px;
+  padding: 3px 4px 3px 2px;
+  text-align: right;
+  font-family: var(--num);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--hanji);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+}
+.s-min input:hover { border-bottom-color: var(--jjok-line); }
+.s-min input:focus { border-bottom-color: var(--cheongja); outline: none; }
+
+.s-drop {
+  justify-self: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--meok-mute);
+  cursor: pointer;
+  line-height: 1;
+}
+.s-drop:hover { color: var(--juhong); }
+
+.sheet-add { flex: none; max-width: 540px; }
+.sheet-add-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+.sheet-add-row .days { margin-top: 0; }
+#sheetTitle {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  background: var(--jjok-deep);
+  border: 1px solid var(--jjok-line);
+  border-radius: 2px;
+  font-size: 13.5px;
+}
+#sheetTitle::placeholder { color: var(--meok-mute); }
+
+/* ── 기록 ───────────────────────────────────────────────── */
+.stats { display: flex; gap: 0; flex: none; flex-wrap: wrap; }
+.stat { padding: 0 26px 0 0; margin-right: 26px; border-right: 1px solid var(--jjok-line); }
+.stat:last-child { border-right: 0; margin-right: 0; }
+.stat-num {
+  display: block;
+  font-family: var(--num);
+  font-variation-settings: "wdth" 87.5, "wght" 620;
+  font-stretch: 87.5%;
+  font-size: 30px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.stat-num small { font-size: 15px; color: var(--meok-mute); margin-left: 2px; }
+.stat-name { font-size: 12px; color: var(--meok-mute); }
+
+.sub {
+  margin: 28px 0 12px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--meok-mute);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--jjok-line);
+  flex: none;
+}
+
+.week { display: flex; gap: 10px; align-items: flex-end; height: 118px; flex: none; }
+.day { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: 7px; }
+.day-bar {
+  background: var(--cheongja);
+  min-height: 2px;
+  border-radius: 1px 1px 0 0;
+}
+.day.is-none .day-bar { background: var(--jjok-line); min-height: 3px; }
+.day.is-today .day-bar { background: var(--hanji); }
+.day-foot { display: flex; justify-content: center; align-items: baseline; gap: 5px; }
+.day-name { font-size: 11.5px; color: var(--meok-mute); }
+.day.is-today .day-name { color: var(--hanji); }
+.day-min { font-family: var(--num); font-size: 11px; color: var(--meok-mute); font-variant-numeric: tabular-nums; }
+
+.history { list-style: none; margin: 0; padding: 0; flex: none; }
+.history li {
+  display: grid;
+  grid-template-columns: 92px 1fr auto auto;
+  gap: 14px;
+  align-items: baseline;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--jjok-line);
+  font-size: 13px;
+}
+.h-when { font-family: var(--num); font-size: 12px; color: var(--meok-mute); font-variant-numeric: tabular-nums; }
+.h-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-what.is-blank { color: var(--meok-mute); }
+.h-len { font-family: var(--num); font-size: 12.5px; color: var(--meok-mute); font-variant-numeric: tabular-nums; }
+.h-mark { font-size: 11.5px; color: var(--meok-mute); min-width: 34px; text-align: right; }
+.h-mark.is-done { color: var(--cheongja); }
+
+.empty, .lede, .note {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--meok-mute);
+}
+.lede { margin-bottom: 16px; }
+.note { margin-top: 22px; line-height: 1.7; max-width: 44ch; }
+
+/* ── 도전과제 ───────────────────────────────────────────── */
+.badges {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  gap: 18px 22px;
+  flex: none;
+}
+.badge { display: flex; gap: 12px; align-items: flex-start; }
+.badge-mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 3px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--jjok-line);
+  color: var(--meok-mute);
+  opacity: 0.5;
+  font-size: 19px;
+  line-height: 1;
+}
+.badge.is-open .badge-mark {
+  opacity: 1;
+  background: var(--juhong);
+  border-color: var(--juhong);
+  color: #fff;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.75);
+}
+.badge-name { font-size: 13.5px; color: var(--meok-mute); }
+.badge.is-open .badge-name { color: var(--hanji); font-weight: 600; }
+.badge-hint { font-size: 11.5px; color: var(--meok-mute); line-height: 1.5; }
+
+/* ── 설정 ───────────────────────────────────────────────── */
+.prefs { list-style: none; margin: 0; padding: 0; flex: none; max-width: 600px; }
+.prefs li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--jjok-line);
+}
+.pref-label span { display: block; font-size: 13.5px; }
+.pref-label small { display: block; margin-top: 2px; font-size: 11.5px; color: var(--meok-mute); line-height: 1.5; }
+
+.switch { flex: none; cursor: pointer; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch-track {
+  display: block;
+  width: 40px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--jjok-deep);
+  box-shadow: inset 0 0 0 1px var(--jjok-line);
+  position: relative;
+  transition: background-color 0.18s ease;
+}
+.switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--meok-mute);
+  transition: transform 0.18s ease, background-color 0.18s ease;
+}
+.switch input:checked + .switch-track { background: var(--cheongja); box-shadow: none; }
+.switch input:checked + .switch-track::after { transform: translateX(20px); background: var(--jjok); }
+.switch input:focus-visible + .switch-track { outline: 2px solid var(--cheongja); outline-offset: 2px; }
+
+/* ── 낙관: 레벨업 순간 ──────────────────────────────────── */
+.seal-stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 24px;
+  background: rgba(22, 29, 51, 0.84);
+  pointer-events: none;
+  z-index: 10;
+}
+.seal-stage[hidden] { display: none; }
+
+.seal {
+  width: 132px;
+  height: 132px;
+  display: grid;
+  place-items: center;
+  background: var(--juhong);
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.85),
+              0 0 0 1px rgba(0, 0, 0, 0.25),
+              0 18px 48px rgba(0, 0, 0, 0.45);
+  transform: rotate(-6deg);
+  animation: stamp 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.seal-level {
+  font-family: var(--num);
+  font-variation-settings: "wght" 700;
+  font-weight: 700;
+  font-size: 64px;
+  line-height: 1;
+  color: #fff;
+}
+.seal-caption {
+  margin: 0;
+  font-size: 14px;
+  color: var(--hanji);
+  animation: rise 0.4s 0.18s ease-out both;
+}
+
+@keyframes stamp {
+  0%   { transform: rotate(-14deg) scale(1.9); opacity: 0; }
+  55%  { transform: rotate(-6deg) scale(0.93); opacity: 1; }
+  100% { transform: rotate(-6deg) scale(1); opacity: 1; }
+}
+@keyframes rise {
+  from { transform: translateY(6px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes draw-in {
+  from { stroke-dasharray: 0 40; }
+  to   { stroke-dasharray: 40 0; }
+}
+
+/* ── 토스트 ─────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  padding: 9px 18px;
+  background: var(--jjok-deep);
+  border: 1px solid var(--jjok-line);
+  border-radius: 2px;
+  font-size: 13px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 11;
+}
+.toast[hidden] { display: none; }
+.toast b { color: var(--geum); font-family: var(--num); font-weight: 600; }
+
+/* ── 좁은 창 ────────────────────────────────────────────── */
+@media (max-width: 920px) {
+  :root { --rail-w: 208px; }
+  .view, .tabs { padding-inline: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* 준비에서 집중으로: 색은 걷히고 원과 시간만 남는다. */
+.body { grid-template-columns: var(--rail-w) minmax(0, 1fr); transition: grid-template-columns 850ms cubic-bezier(.22,1,.36,1); }
+body.panel-collapsed .body { grid-template-columns: 0px minmax(0, 1fr); }
+.strip { padding-left: 12px; gap: 10px; background: var(--jjok); position: relative; z-index: 2; border-bottom-color: rgba(160,171,194,.12); }
+.panel-toggle { -webkit-app-region: no-drag; width: 30px; height: 30px; display: grid; place-items: center; padding: 5px; border: 0; border-radius: 6px; background: transparent; color: var(--meok-mute); cursor: pointer; }
+.panel-toggle svg { width: 20px; height: 20px; }
+.panel-toggle:hover { color: var(--hanji); background: rgba(160,171,194,.12); }
+.rank { transition: opacity 700ms ease; }
+.rail { min-width: 0; overflow: hidden; background: #151619; transition: opacity 450ms ease, transform 850ms cubic-bezier(.22,1,.36,1); }
+.rail-scroll, .compose { width: var(--rail-w); }
+body.panel-collapsed .rail { opacity: 0; transform: translateX(-18px); pointer-events: none; border: 0; }
+.rail-scroll { padding-top: 25px; }
+.group-name { border: 0; font-weight: 600; margin-bottom: 7px; }
+.quest { border-radius: 7px; margin-bottom: 4px; padding-block: 10px; }
+.quest.is-on { border-left-color: var(--cheongja); background: rgba(161,181,229,.1); }
+.quest:focus-within .quest-drop { opacity: 1; }
+.compose { border-top-color: rgba(160,171,194,.12); }
+.compose-open { border-radius: 6px; }
+.compose-open:hover { background: rgba(160,171,194,.07); }
+.content { position: relative; isolation: isolate; overflow: hidden; }
+.content::before { content: ''; position: absolute; inset: 8% 4%; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 43% 50%, rgba(38,65,175,.36), transparent 63%), radial-gradient(ellipse at 66% 63%, rgba(58,47,131,.18), transparent 57%); filter: blur(42px); opacity: 1; animation: ambient-drift 22s ease-in-out infinite alternate; transition: opacity 1200ms ease; }
+body.is-running .content::before, body.is-away .content::before { opacity: 0; }
+@keyframes ambient-drift {
+  0% { transform: translate(-4%, 2%) scale(.94) rotate(-5deg); }
+  50% { transform: translate(4%, -3%) scale(1.06) rotate(3deg); }
+  100% { transform: translate(-1%, 5%) scale(1.02) rotate(-2deg); }
+}
+.tabs { justify-content: center; padding-top: 16px; transition: opacity 650ms ease; }
+.tab { padding: 7px 13px; border-radius: 7px; }
+.tab.is-on { background: rgba(160,171,194,.09); }
+.tab.is-on::after { display: none; }
+#viewField { padding-top: 12px; }
+/* 빠듯할 때는 줄어들 수 있어야 한다. 못 줄이면 스크롤바가 생기고,
+   그 스크롤바가 가운데 정렬된 원형 타이머를 옆으로 밀어낸다. */
+.field-core { align-items: center; text-align: center; min-height: 0; flex: 1 1 auto; padding: 12px 0 22px; }
+.field-title { color: var(--hanji); font-size: 22px; max-width: min(100%, 32ch); margin-top: 5px; }
+.field-title.is-blank { color: var(--hanji); font-weight: 500; }
+/* 높이를 주고 폭은 aspect-ratio 로 따라오게 한다. 그래야 남은 공간이
+   모자랄 때 링이 조금 줄어들며 맞춰지고, 스크롤이 생기지 않는다. */
+.timer-ring { position: relative; flex: 0 1 auto; min-height: 0; height: clamp(230px, 41vh, 360px); width: auto; max-width: 100%; aspect-ratio: 1; margin-top: 22px; }
+.ring-svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.ring-track, .ring-fill { fill: none; stroke-width: 3; }
+.ring-track { stroke: rgba(160,171,194,.16); }
+.ring-fill { stroke: var(--cheongja); stroke-dasharray: 100; stroke-dashoffset: 0; stroke-linecap: round; transition: stroke-dashoffset 250ms linear, stroke 600ms ease; }
+.timer-ring.is-held .ring-fill { stroke: var(--meok-mute); }
+.timer-ring.is-done .ring-fill { stroke: var(--juhong); }
+.ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.clock { margin: 0; font-family: 'Bahnschrift', 'Segoe UI', var(--han); font-weight: 300; font-variation-settings: 'wght' 300; font-stretch: normal; font-size: clamp(44px, 9.8vh, 82px); letter-spacing: -.04em; line-height: 1; }
+.clock-caption { color: var(--meok-mute); font-size: 12px; }
+.dial { margin-top: 16px; gap: 16px; }
+.minutes-lg input { font-size: 20px; width: 66px; }
+.chip { border-radius: 6px; font-size: 13px; }
+.chip.is-on { color: var(--hanji); background: rgba(161,181,229,.15); border-color: rgba(161,181,229,.45); }
+.acts { margin-top: 20px; min-height: 42px; justify-content: center; }
+.btn { border-radius: 8px; }
+.btn-go { min-width: 112px; }
+.today { justify-content: center; border: 0; padding-top: 0; flex: none; transition: opacity 650ms ease; }
+body.is-focusing .tabs, body.is-focusing .today, body.is-focusing .rank { opacity: .35; }
+body.is-focusing .tabs:hover, body.is-focusing .tabs:focus-within { opacity: 1; }
+body.is-focusing .timer-ring { margin-top: 28px; }
+@media (max-height: 640px) {
+  /* 링은 높이로 크기를 정한다 (폭은 aspect-ratio 가 따라온다) */
+  .timer-ring { height: 230px; margin-top: 14px; }
+  .field-core { padding-block: 4px 12px; }
+  .clock { font-size: 56px; }
+  .dial, .acts { margin-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+
