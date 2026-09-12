@@ -35,6 +35,12 @@
     disarmTimer: () => send('timer:disarm'),
     onElapsed: fn => on('timer:elapsed', fn),
     onResync: fn => on('timer:resync', fn),
+    getUpdate: () => invoke('update:get'),
+    setAutoUpdate: on => invoke('update:auto', { on }),
+    checkUpdate: () => send('update:check'),
+    downloadUpdate: () => send('update:download'),
+    installUpdate: () => send('update:install'),
+    onUpdateState: fn => on('update:state', fn),
     signalReady: () => send('renderer:ready'),
   });
 })();

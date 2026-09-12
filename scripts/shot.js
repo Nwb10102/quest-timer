@@ -112,6 +112,15 @@ app.whenReady().then(async () => {
   ipcMain.handle('window:always-on-top', () => false);
   ipcMain.on('timer:arm', () => {});
   ipcMain.on('timer:disarm', () => {});
+  ipcMain.handle('update:get', () => ({
+    version: require('../package.json').version,
+    packaged: true,
+    update: { status: 'current', version: null, percent: 0, error: null },
+  }));
+  ipcMain.handle('update:auto', () => true);
+  ipcMain.on('update:check', () => {});
+  ipcMain.on('update:download', () => {});
+  ipcMain.on('update:install', () => {});
 
   const win = new BrowserWindow({
     width: 1000,

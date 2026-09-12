@@ -665,6 +665,8 @@ button, input { font: inherit; color: inherit; }
 /* ── 업데이트 ───────────────────────────────────────────── */
 .upd { flex: none; max-width: 600px; margin-top: 26px; }
 .upd[hidden] { display: none; }
+/* display:flex 는 UA 의 [hidden]{display:none} 을 덮어쓴다 */
+.prefs li[hidden] { display: none; }
 .upd-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .upd-head .sub { margin: 0 0 12px; flex: 1; }
 

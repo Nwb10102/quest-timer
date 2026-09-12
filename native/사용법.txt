@@ -1,0 +1,28 @@
+Quest Timer 1.1.0 — WebView2
+
+ZIP 전체를 풀고 Quest Timer.exe를 실행하세요.
+exe 옆의 DLL 파일과 www 폴더가 함께 있어야 합니다.
+Windows 10/11 x64, .NET Framework 4.8 이상, Microsoft Edge WebView2가 필요합니다.
+Windows 11에서는 이 구성요소를 대체로 이미 사용할 수 있습니다.
+WebView2가 없으면 실행 시 Microsoft 공식 다운로드 페이지를 안내합니다.
+브라우저 엔진은 앱에 포함되지 않고 PC에 설치된 공유 런타임을 사용합니다.
+
+처음 실행하면 이전 Electron 앱의 공부 기록을 복사해 가져옵니다.
+이전 기록은 수정하지 않으며, 이후 두 앱의 기록은 따로 저장됩니다.
+새 기록: %APPDATA%\Quest Timer WebView2\data.json
+백업: data.json.bak / 처음 가져온 원본: electron-original.json
+WebView2 캐시: 같은 폴더 아래 WebView2
+
+종료하면 진행 중 타이머도 종료됩니다. 최소화 상태에서는 계속 동작합니다.
+완료 알림은 Windows 시스템 트레이 알림을 사용합니다.
+집중 지원/방해 금지 설정에 따라 시스템 알림 표시가 제한될 수 있습니다.
+원형 타이머와 완료 배너, 소리 기능은 앱 안에서도 동작합니다.
+
+소스 빌드: npm run dist
+실행: npm start
+게임 규칙 테스트: npm test
+실제 WebView2 검증: npm run smoke
+
+이 빌드는 코드 서명되지 않았습니다.
+WebView2 SDK 라이선스와 고지는 동봉된 WebView2-LICENSE.txt 및 WebView2-NOTICE.txt를 참고하세요.
+
