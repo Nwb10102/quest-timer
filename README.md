@@ -111,6 +111,7 @@ stdout 은 파이프로 넘길 때 버퍼링돼서 도중에 멈추면 보이지
 | ![시간표](shots/sheet.png) | ![퀘스트 적기](shots/compose.png) |
 | ![기록](shots/log.png) | ![도전과제](shots/badges.png) |
 | ![설정](shots/prefs.png) | ![레벨업](shots/seal.png) |
+| ![집중하는 중](shots/running.png) | ![완주 알림](shots/alarm.png) |
 
 ## 설치 파일 만들기
 
@@ -122,10 +123,10 @@ npm run pack     묶기만 하고 설치 파일은 안 만든다 (빠른 확인�
 
 `dist/` 에 두 가지가 나온다.
 
-- **Quest Timer Setup 1.0.0.exe** — 설치 파일. 시작 메뉴와 바탕화면에 바로가기를
+- **Quest Timer Setup 1.0.1.exe** — 설치 파일. 시작 메뉴와 바탕화면에 바로가기를
   만든다. 완료 알림에 앱 아이콘이 제대로 붙으려면 이쪽으로 설치해야 한다
   (Windows 는 시작 메뉴 바로가기의 AppUserModelId 로 아이콘을 찾는다).
-- **Quest Timer 1.0.0 portable.exe** — 설치 없이 바로 실행. 알림 아이콘은
+- **Quest Timer 1.0.1 portable.exe** — 설치 없이 바로 실행. 알림 아이콘은
   Electron 것으로 뜬다.
 
 아이콘은 `scripts/make-icon.js` 가 그린다. 이미지 편집 도구 없이 Electron 으로
