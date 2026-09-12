@@ -78,6 +78,8 @@
   let pickedQuestId = null;
   let ticker = null;
   let audioCtx = null;
+  let master = null;      // 모든 소리가 거쳐 가는 노드. 끌 때 한 번에 끊는다.
+  let alarmTimer = null;  // 완주 알림을 반복시키는 타이머
   let lastTallyCount = null;
   let undoBin = null;
   let toastTimer = null;
@@ -179,6 +181,7 @@
     run.startedAt = Date.now();
     run.finalized = false;
 
+    stopAlarm();
     unlockAudio();
     resume();
   }
@@ -266,12 +269,23 @@
     unlocked.forEach((id) => { state.achievements[id] = stamp; });
 
     save();
-    if (completed) chime();
+    if (completed) startAlarm();
     renderAll();
 
     if (after > before) showSeal(after);
-    else if (unlocked.length) say(badgeName(unlocked[0]) + ' 도전과제를 얻었습니다.');
-    else say((completed ? '완주. ' : '여기까지 기록했습니다. ') + '경험치 +' + xp, true);
+
+    if (isAlarmRinging()) {
+      // 알림이 울리는 동안은 끄는 버튼이 어느 탭에서든 보여야 한다
+      say('완주. 경험치 +' + xp, true,
+        { label: '알림 끄기', run: stopAlarm, strong: true }, true);
+      el.toast.classList.add('is-alarm');
+    } else if (after > before) {
+      /* 낙관이 대신 알려준다 */
+    } else if (unlocked.length) {
+      say(badgeName(unlocked[0]) + ' 도전과제를 얻었습니다.');
+    } else {
+      say((completed ? '완주. ' : '여기까지 기록했습니다. ') + '경험치 +' + xp, true);
+    }
   }
 
   function badgeName(id) {
@@ -281,33 +295,82 @@
 
   // ── 소리 ────────────────────────────────────────────────
   // AudioContext 는 suspended 로 시작하므로 "시작" 클릭 안에서 풀어준다.
-  function unlockAudio() {
-    if (!state.settings.sound) return;
+  // 모든 소리는 master 를 거쳐 나가므로 알림을 끌 때 한 번에 끊을 수 있다.
+  function ensureAudio() {
+    if (!state.settings.sound) return null;
     try {
-      if (!audioCtx) audioCtx = new AudioContext();
+      if (!audioCtx) {
+        audioCtx = new AudioContext();
+        master = audioCtx.createGain();
+        master.gain.value = 1;
+        master.connect(audioCtx.destination);
+      }
       if (audioCtx.state === 'suspended') audioCtx.resume();
-    } catch (_) { audioCtx = null; }
+      return audioCtx;
+    } catch (_) {
+      audioCtx = null;
+      master = null;
+      return null;
+    }
   }
 
-  function chime() {
-    if (!state.settings.sound || !audioCtx) return;
+  function unlockAudio() { ensureAudio(); }
+
+  /** 짧은 음 하나. */
+  function blip(freq, at, peak) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, at);
+    gain.gain.linearRampToValueAtTime(peak, at + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.5);
+    osc.connect(gain).connect(master);
+    osc.start(at);
+    osc.stop(at + 0.55);
+  }
+
+  /** 세 음이 올라가는 차임 한 벌. */
+  function ring() {
+    if (!ensureAudio()) return;
     try {
       const t0 = audioCtx.currentTime;
+      // 껐던 master 를 되돌린다
+      master.gain.cancelScheduledValues(t0);
+      master.gain.setValueAtTime(1, t0);
       [587.33, 783.99, 1046.5].forEach((freq, i) => {
-        const at = t0 + i * 0.13;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, at);
-        gain.gain.linearRampToValueAtTime(0.2, at + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.5);
-        osc.connect(gain).connect(audioCtx.destination);
-        osc.start(at);
-        osc.stop(at + 0.55);
+        const at = t0 + i * 0.16;
+        blip(freq, at, 0.38);
+        blip(freq * 2, at, 0.1); // 한 옥타브 위를 얇게 얹어 멀리서도 들리게
       });
     } catch (_) { /* 소리가 안 나도 기록은 남는다 */ }
   }
+
+  /**
+   * 완주 알림. 끄기 전까지 계속 울린다.
+   * 한 번만 울리는 소리는 자리를 비웠거나 다른 창을 보고 있으면 놓친다.
+   */
+  function startAlarm() {
+    stopAlarm();
+    if (!ensureAudio()) return; // 소리를 꺼두었으면 울리지 않는다
+    ring();
+    alarmTimer = setInterval(ring, 1900);
+  }
+
+  function stopAlarm() {
+    if (alarmTimer) { clearInterval(alarmTimer); alarmTimer = null; }
+    // 울리고 있던 음까지 즉시 끊는다
+    if (audioCtx && master) {
+      try {
+        const now = audioCtx.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(0, now);
+      } catch (_) { /* 무시 */ }
+    }
+    el.toast.classList.remove('is-alarm');
+  }
+
+  const isAlarmRinging = () => alarmTimer !== null;
 
   // ── 그리기: 제목줄 ──────────────────────────────────────
   function renderRank() {
@@ -873,7 +936,9 @@
     setTimeout(() => { el.sealStage.hidden = true; }, 2400);
   }
 
-  function say(text, gold, action) {
+  function say(text, gold, action, sticky) {
+    // 울리는 중에 다른 말이 뜬다면 사용자가 이미 화면 앞에 있다는 뜻이다
+    if (!sticky && isAlarmRinging()) stopAlarm();
     if (toastTimer) clearTimeout(toastTimer);
     el.toast.textContent = '';
 
@@ -893,7 +958,7 @@
 
     if (action) {
       const btn = document.createElement('button');
-      btn.className = 'btn btn-plain';
+      btn.className = action.strong ? 'btn btn-quiet' : 'btn btn-plain';
       btn.type = 'button';
       btn.textContent = action.label;
       btn.addEventListener('click', () => { el.toast.hidden = true; action.run(); });
@@ -901,6 +966,7 @@
     }
 
     el.toast.hidden = false;
+    if (sticky) { toastTimer = null; return; } // 끌 때까지 남는다
     toastTimer = setTimeout(() => { el.toast.hidden = true; }, action ? 6000 : 3200);
   }
 
@@ -983,6 +1049,7 @@
     el.prefSound.addEventListener('change', () => {
       state.settings.sound = el.prefSound.checked;
       if (state.settings.sound) unlockAudio();
+      else stopAlarm();
       save();
     });
     el.prefOnTop.addEventListener('change', async () => {
@@ -993,8 +1060,18 @@
       save();
     });
 
-    // 스페이스로 시작/멈춤
+    // 스페이스로 시작/멈춤, 울리는 알림은 Esc 로도 끈다
     document.addEventListener('keydown', (e) => {
+      // 알림이 울리는 중이면 끄는 것이 가장 급한 일이다
+      if (isAlarmRinging() && (e.key === 'Escape' || e.code === 'Space')) {
+        const inField = e.target
+          && (e.target.tagName === 'INPUT' || e.target.isContentEditable);
+        if (e.key === 'Escape' || !inField) {
+          e.preventDefault();
+          el.toast.hidden = true;
+          return stopAlarm();
+        }
+      }
       if (e.key === 'Escape' && !el.composeFields.hidden) return openCompose(false);
       if (e.code !== 'Space') return;
       const t = e.target;

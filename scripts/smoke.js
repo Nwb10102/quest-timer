@@ -284,6 +284,30 @@ async function run() {
   const hist = await js("document.querySelectorAll('#history li').length");
   check('기록에 구간이 남는다', hist >= 1, hist + '건');
 
+  // ── 5.5 완주 알림은 끌 때까지 울린다 ───────────────────
+  check('완주하면 알림 배너가 뜬다',
+    !(await js("document.getElementById('toast').hidden"))
+    && (await js("document.getElementById('toast').classList.contains('is-alarm')")),
+    await text('#toast'));
+  check('배너에 끄는 버튼이 있다',
+    !!(await js("!!document.querySelector('#toast button')")),
+    await js("document.querySelector('#toast button') ? document.querySelector('#toast button').textContent : '(없음)'"));
+
+  // 저절로 사라지지 않아야 한다 - 자리를 비웠어도 놓치지 않게
+  await wait(4200);
+  check('시간이 지나도 배너가 사라지지 않는다',
+    !(await js("document.getElementById('toast').hidden")));
+
+  // 울리는 중의 모습을 한 장 남긴다 (꾸민 것이 아니라 실제 상태)
+  fs.writeFileSync(path.join(ROOT, 'shots', 'alarm.png'),
+    (await win.webContents.capturePage()).toPNG());
+
+  await click('#toast button');
+  await wait(300);
+  check('끄기를 누르면 배너가 사라진다',
+    (await js("document.getElementById('toast').hidden"))
+    && !(await js("document.getElementById('toast').classList.contains('is-alarm')")));
+
   // ── 6. 저장 ────────────────────────────────────────────
   await wait(900);
   let saved = null;

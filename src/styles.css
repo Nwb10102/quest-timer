@@ -807,6 +807,27 @@ button, input { font: inherit; color: inherit; }
   z-index: 11;
 }
 .toast[hidden] { display: none; }
+
+/* 울리는 중인 완주 알림. 끄기 전까지 남아 있으므로 눈에 띄어야 한다. */
+.toast.is-alarm {
+  padding: 11px 14px 11px 20px;
+  border-color: var(--juhong);
+  animation: alarm-breathe 1.9s ease-in-out infinite;
+}
+.toast.is-alarm::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--juhong);
+  vertical-align: middle;
+}
+@keyframes alarm-breathe {
+  0%, 100% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 0 rgba(206, 59, 44, 0.5); }
+  50%      { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 5px rgba(206, 59, 44, 0); }
+}
 .toast b { color: var(--geum); font-family: var(--num); font-weight: 600; }
 
 /* ── 좁은 창 ────────────────────────────────────────────── */
