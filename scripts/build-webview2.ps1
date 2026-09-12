@@ -27,6 +27,10 @@ try {
     $taskVersion = (Get-Content -LiteralPath (Join-Path $taskRoot 'package.json') -Raw | ConvertFrom-Json).version
     $taskZip = Join-Path $taskRoot "dist-webview2/Quest Timer $taskVersion WebView2.zip"
     Compress-Archive -LiteralPath $taskOutput -DestinationPath $taskZip -CompressionLevel Optimal -Force
+    # 자동 업데이트가 받은 파일을 대조하는 체크섬. 서명이 없으니 유일한 무결성 검사다.
+    $taskSum = "$taskZip.sha256"
+    $taskHash = (Get-FileHash -LiteralPath $taskZip -Algorithm SHA256).Hash.ToLower()
+    "$taskHash  $(Split-Path $taskZip -Leaf)" | Set-Content -LiteralPath $taskSum -Encoding ascii
     $taskBytes = (Get-ChildItem -LiteralPath $taskOutput -Recurse -File | Measure-Object Length -Sum).Sum
     Write-Host ('App: {0:N2} MiB / ZIP: {1:N2} MiB' -f ($taskBytes / 1MB), ((Get-Item -LiteralPath $taskZip).Length / 1MB))
     $taskExe = Join-Path $taskOutput 'Quest Timer.exe'
