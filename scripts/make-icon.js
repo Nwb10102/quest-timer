@@ -24,8 +24,10 @@ const SIZES = [16, 24, 32, 48, 64, 128, 256];
 
 /*
  * 크기별로 그림을 나눈다. 작은 아이콘에 큰 그림을 줄이면 뭉개진다.
- *   64px 이상 - 원형 타이머 링 + 그 안의 正 한 글자 (앱의 두 표식)
- *   48px 이하 - 링만 굵게. 이 크기에서 획은 어차피 읽히지 않는다.
+ *   64px 이상 - 남은 시간을 보여주는 링 + 그 안의 正 한 글자 (앱의 두 표식)
+ *   24~48px  - 링을 닫고 획을 굵게. 끊긴 링은 이 크기에서 뱅뱅 도는
+ *              기다림 표시로 보인다. 획은 굵게 키우면 48px 까지 읽힌다.
+ *   16px     - 닫힌 링만. 이 크기에서 글자는 어차피 뭉개진다.
  */
 function shell(inner) {
   return '<!doctype html><meta charset="utf-8">'
@@ -36,28 +38,38 @@ function shell(inner) {
     + inner + '</svg>';
 }
 
-/** 남은 시간을 보여주는 링. width 는 획 두께, r 은 반지름. */
-function ring(r, width) {
+/**
+ * 남은 시간을 보여주는 링. width 는 획 두께, r 은 반지름.
+ * gap 을 주면 28% 를 비워 진행 중인 링이 된다. 작은 크기에서는 비운 자리의
+ * 어두운 바탕이 보이지 않아 링이 끊긴 것처럼 되므로 닫아서 쓴다.
+ */
+function ring(r, width, gap) {
   return '<g transform="rotate(-90 128 128)">'
     + '<circle cx="128" cy="128" r="' + r + '" fill="none" stroke="#2C2E34" stroke-width="' + width + '"/>'
     + '<circle cx="128" cy="128" r="' + r + '" fill="none" stroke="#A1B5E5" stroke-width="' + width + '"'
-    + ' pathLength="100" stroke-dasharray="100" stroke-dashoffset="28" stroke-linecap="round"/>'
-    + '</g>';
+    + (gap ? ' pathLength="100" stroke-dasharray="100" stroke-dashoffset="28" stroke-linecap="round"' : '')
+    + '/></g>';
 }
 
-// 획 두께는 scale 로 함께 커지므로 나눠서 적는다: 8px / 4.5 = 1.78
-const JEONG = '<g stroke="#EDF0F7" stroke-width="1.78" stroke-linecap="round" fill="none"'
-  + ' transform="translate(128 128) scale(4.5) translate(-10 -10)">'
-  + '<path d="M2 4.5 H18"/><path d="M9 4.5 V16"/><path d="M2 10 H9"/>'
-  + '<path d="M14.5 10 V16"/><path d="M2 16 H18"/></g>';
+/** 正 한 글자. 획 두께는 scale 로 함께 커지므로 나눠서 적는다: 8px / 4.5 = 1.78 */
+function jeong(scale, width) {
+  return '<g stroke="#EDF0F7" stroke-width="' + width + '" stroke-linecap="round" fill="none"'
+    + ' transform="translate(128 128) scale(' + scale + ') translate(-10 -10)">'
+    + '<path d="M2 4.5 H18"/><path d="M9 4.5 V16"/><path d="M2 10 H9"/>'
+    + '<path d="M14.5 10 V16"/><path d="M2 16 H18"/></g>';
+}
 
 const DESIGNS = {
-  large: shell(ring(88, 16) + JEONG),
-  small: shell(ring(92, 30)),
+  large: shell(ring(88, 16, true) + jeong(4.5, 1.78)),
+  mid: shell(ring(96, 22, false) + jeong(4.2, 2.6)),
+  tiny: shell(ring(92, 30, false)),
 };
 
 /** 이 크기에 쓸 그림. */
-function designFor(size) { return size >= 64 ? 'large' : 'small'; }
+function designFor(size) {
+  if (size >= 64) return 'large';
+  return size >= 24 ? 'mid' : 'tiny';
+}
 
 /** PNG 여러 장을 담은 ico 파일 바이트를 만든다. */
 function buildIco(pngs) {
