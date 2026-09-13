@@ -1,11 +1,11 @@
 /*
- * make-icon.js - 앱 아이콘을 그려서 build/icon.ico 로 만든다.
+ * make-icon.js - 앱 아이콘을 만들어 build/icon.ico 로 묶는다.
  *
  *   npm run icon
  *
- * 이미지 편집 도구 없이 Electron 으로 직접 그린다. 256px 로 한 번 렌더해서
- * nativeImage.resize() 로 작은 크기들을 만들고, 여러 장을 담은 ico 로 묶는다.
- * 아이콘 디자인을 고치려면 아래 ICON_HTML 만 손보면 된다.
+ * 그림은 assets/image/MainIcon.png 하나를 쓴다. 바꾸려면 그 파일만 갈아끼우면
+ * 된다. 여기서는 크기별로 손질만 달리해서 Electron 으로 한 판씩 렌더한 뒤
+ * 여러 장을 담은 ico 로 묶는다.
  */
 'use strict';
 
@@ -13,6 +13,7 @@ const { app, BrowserWindow, nativeImage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
+const url = require('node:url');
 
 const ROOT = path.join(__dirname, '..');
 const OUT_DIR = path.join(ROOT, 'build');
@@ -22,53 +23,41 @@ const OUT_PNG = path.join(OUT_DIR, 'icon.png');
 // ico 에 담을 크기들. 16 은 작업표시줄, 256 은 설치 파일과 속성 창에 쓰인다.
 const SIZES = [16, 24, 32, 48, 64, 128, 256];
 
-/*
- * 크기별로 그림을 나눈다. 작은 아이콘에 큰 그림을 줄이면 뭉개진다.
- *   64px 이상 - 남은 시간을 보여주는 링 + 그 안의 正 한 글자 (앱의 두 표식)
- *   24~48px  - 링을 닫고 획을 굵게. 끊긴 링은 이 크기에서 뱅뱅 도는
- *              기다림 표시로 보인다. 획은 굵게 키우면 48px 까지 읽힌다.
- *   16px     - 닫힌 링만. 이 크기에서 글자는 어차피 뭉개진다.
- */
-function shell(inner) {
-  return '<!doctype html><meta charset="utf-8">'
-    + '<style>html,body{margin:0;width:256px;height:256px;background:transparent}'
-    + 'svg{display:block}</style>'
-    + '<svg width="256" height="256" viewBox="0 0 256 256">'
-    + '<rect x="0" y="0" width="256" height="256" rx="56" fill="#101113"/>'
-    + inner + '</svg>';
-}
+const SOURCE = path.join(ROOT, 'assets', 'image', 'MainIcon.png');
 
 /**
- * 남은 시간을 보여주는 링. width 는 획 두께, r 은 반지름.
- * gap 을 주면 28% 를 비워 진행 중인 링이 된다. 작은 크기에서는 비운 자리의
- * 어두운 바탕이 보이지 않아 링이 끊긴 것처럼 되므로 닫아서 쓴다.
+ * 원본을 256px 판에 올린다. zoom 은 확대 배율, filter 는 CSS 필터.
+ * 모서리는 둥글게 깎는다 - 네모난 판은 작업 표시줄에서 검은 덩어리로 보인다.
  */
-function ring(r, width, gap) {
-  return '<g transform="rotate(-90 128 128)">'
-    + '<circle cx="128" cy="128" r="' + r + '" fill="none" stroke="#2C2E34" stroke-width="' + width + '"/>'
-    + '<circle cx="128" cy="128" r="' + r + '" fill="none" stroke="#A1B5E5" stroke-width="' + width + '"'
-    + (gap ? ' pathLength="100" stroke-dasharray="100" stroke-dashoffset="28" stroke-linecap="round"' : '')
-    + '/></g>';
+function page(zoom, filter) {
+  const scaled = Math.round(256 * zoom);
+  const offset = -Math.round((scaled - 256) / 2);
+  return '<!doctype html><meta charset="utf-8">'
+    + '<style>html,body{margin:0;width:256px;height:256px;background:transparent;overflow:hidden}'
+    + '.frame{width:256px;height:256px;overflow:hidden;border-radius:56px}'
+    + 'img{display:block;width:' + scaled + 'px;height:' + scaled + 'px;'
+    + 'margin:' + offset + 'px;filter:' + filter + '}</style>'
+    + '<div class="frame"><img src="' + url.pathToFileURL(SOURCE).href + '"></div>';
 }
 
-/** 正 한 글자. 획 두께는 scale 로 함께 커지므로 나눠서 적는다: 8px / 4.5 = 1.78 */
-function jeong(scale, width) {
-  return '<g stroke="#EDF0F7" stroke-width="' + width + '" stroke-linecap="round" fill="none"'
-    + ' transform="translate(128 128) scale(' + scale + ') translate(-10 -10)">'
-    + '<path d="M2 4.5 H18"/><path d="M9 4.5 V16"/><path d="M2 10 H9"/>'
-    + '<path d="M14.5 10 V16"/><path d="M2 16 H18"/></g>';
-}
-
+/*
+ * 크기별로 손질을 달리한다. 작게 줄일수록 더 키우고 더 밝힌다.
+ *   128px 이상 - 원본 그대로
+ *   64px      - 살짝만. 앞뒤 크기와 너무 벌어지지 않게 잇는 자리다
+ *   48px 이하 - 뚜렷하게. 원본은 여백이 넉넉하고 링이 오른쪽으로 갈수록
+ *               바탕에 묻히는데, 작게 줄이면 묻힌 쪽이 아예 사라져 한쪽이
+ *               끊긴 동그라미처럼 보이기 때문이다.
+ */
 const DESIGNS = {
-  large: shell(ring(88, 16, true) + jeong(4.5, 1.78)),
-  mid: shell(ring(96, 22, false) + jeong(4.2, 2.6)),
-  tiny: shell(ring(92, 30, false)),
+  large: page(1, 'none'),
+  mid: page(1.12, 'brightness(1.18) contrast(1.08)'),
+  small: page(1.26, 'brightness(1.45) contrast(1.25) saturate(1.1)'),
 };
 
 /** 이 크기에 쓸 그림. */
 function designFor(size) {
-  if (size >= 64) return 'large';
-  return size >= 24 ? 'mid' : 'tiny';
+  if (size >= 128) return 'large';
+  return size >= 64 ? 'mid' : 'small';
 }
 
 /** PNG 여러 장을 담은 ico 파일 바이트를 만든다. */
@@ -117,15 +106,19 @@ app.whenReady().then(async () => {
     const tmpHtml = path.join(os.tmpdir(), 'quest-timer-icon.html');
     fs.writeFileSync(tmpHtml, html, 'utf8');
     await win.loadFile(tmpHtml);
-    // 두 프레임을 기다려 확실히 그려진 뒤에 찍는다
+    // 그림이 실리고 두 프레임이 지난 뒤에 찍는다
     await win.webContents.executeJavaScript(
-      'new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))'
+      'new Promise((r) => { const img = document.images[0];'
+      + ' const done = () => requestAnimationFrame(() => requestAnimationFrame(r));'
+      + ' if (img.complete) done(); else img.addEventListener("load", done); })'
     );
     const img = await win.webContents.capturePage();
     fs.unlinkSync(tmpHtml);
     if (img.isEmpty()) throw new Error('아이콘 캡처가 비었습니다');
     return img;
   }
+
+  if (!fs.existsSync(SOURCE)) throw new Error('원본 그림이 없습니다: ' + SOURCE);
 
   const art = {};
   for (const key of Object.keys(DESIGNS)) art[key] = await render(DESIGNS[key]);
