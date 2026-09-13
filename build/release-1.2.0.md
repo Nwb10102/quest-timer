@@ -2,8 +2,8 @@
 
 배포를 다시 Electron exe 로 되돌리고, 탭 막대를 화면 아래로 옮겼습니다.
 
-- 설치해서 쓰는 `Quest Timer Setup 1.2.0.exe` 와 설치 없이 바로 실행하는
-  `Quest Timer 1.2.0 portable.exe` 두 가지로 냅니다. .NET Framework 나 WebView2
+- 설치해서 쓰는 `Quest-Timer-Setup-1.2.0.exe` 와 설치 없이 바로 실행하는
+  `Quest-Timer-1.2.0-portable.exe` 두 가지로 냅니다. .NET Framework 나 WebView2
   런타임을 따로 준비하지 않아도 됩니다.
 - 탭 막대가 화면 아래에 떠 있습니다. 타이머를 보는 동안 손이 가는 곳이고,
   아이콘이 함께 붙어 좁은 창에서도 어느 화면인지 알아볼 수 있습니다.
