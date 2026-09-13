@@ -32,7 +32,7 @@ namespace QuestTimer
             return b.CompareTo(a);   // 0 보다 크면 theirs 가 더 새 판
         }
 
-        private const string Api = "https://api.github.com/repos/Nwb10102/quest-timer/releases/latest";
+        private const string Api = "https://api.github.com/repos/glglekdy/quest-timer/releases/latest";
         private const string Agent = "QuestTimer-Updater";
 
         private readonly JavaScriptSerializer json;
