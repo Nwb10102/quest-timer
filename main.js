@@ -11,7 +11,16 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { registerWindowsNotifications } = require('./windows-notifications');
 
-const APP_ID = 'com.questtimer.app';
+// Windows 는 이 이름으로 창을 앱에 묶는다. 한 번 엉뚱한 exe 와 묶이면 그 기억이
+// 오래 남으므로, 개발 중 실행은 뒤에 .dev 를 붙여 따로 떼어놓는다. 그렇게 하지
+// 않으면 npm start 로 띄운 electron.exe 가 이 앱으로 기억되어 작업 표시줄에
+// Electron 아이콘이 눌러앉는다.
+const APP_ID = 'QuestTimer.App';
+
+/** 지금 실행에 쓸 이름. 개발 중에는 따로 쓴다. */
+function appUserModelId() {
+  return app.isPackaged ? APP_ID : APP_ID + '.dev';
+}
 
 /** 앱 아이콘 파일. 묶인 앱에서는 resources 옆에, 개발 중에는 build 아래에 있다. */
 function iconPath() {
@@ -289,11 +298,11 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
 
-  app.setAppUserModelId(APP_ID);
+  app.setAppUserModelId(appUserModelId());
 
   app.whenReady().then(() => {
     try {
-      registerWindowsNotifications(APP_ID, iconPath());
+      registerWindowsNotifications(appUserModelId(), iconPath());
     } catch (err) {
       console.error('[notifications] 앱 이름 등록 실패:', err.message);
     }
