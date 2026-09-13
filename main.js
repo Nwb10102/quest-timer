@@ -12,6 +12,13 @@ const fs = require('node:fs');
 const { registerWindowsNotifications } = require('./windows-notifications');
 
 const APP_ID = 'com.questtimer.app';
+
+/** 앱 아이콘 파일. 묶인 앱에서는 resources 옆에, 개발 중에는 build 아래에 있다. */
+function iconPath() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'icon.ico')
+    : path.join(__dirname, 'build', 'icon.ico');
+}
 const COLOR_BG = '#101113';   // 쪽빛 - styles.css 의 --jjok 과 같아야 한다
 const COLOR_FG = '#EDF0F7';   // 한지빛
 
@@ -85,6 +92,9 @@ function createWindow() {
     minHeight: 600,
     backgroundColor: COLOR_BG,
     show: false,
+    // 창 아이콘을 직접 준다. 주지 않으면 Windows 가 작업 표시줄에 Electron 의
+    // 기본 아이콘을 그린다 - exe 에 박힌 아이콘과는 별개다.
+    icon: iconPath(),
     // 완전 프레임리스(frame:false)는 Win11 스냅 레이아웃과 리사이즈 테두리를
     // 잃는다. 오버레이 방식은 네이티브 창 버튼을 유지하면서 제목줄을 직접 그린다.
     titleBarStyle: 'hidden',
@@ -283,10 +293,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     try {
-      const iconPath = app.isPackaged
-        ? path.join(process.resourcesPath, 'icon.ico')
-        : path.join(__dirname, 'build', 'icon.ico');
-      registerWindowsNotifications(APP_ID, iconPath);
+      registerWindowsNotifications(APP_ID, iconPath());
     } catch (err) {
       console.error('[notifications] 앱 이름 등록 실패:', err.message);
     }
