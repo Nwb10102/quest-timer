@@ -588,6 +588,11 @@
       && lastClockRemain !== null && lastClockRemain - remain === 1
       && !document.hidden && !el.views.field.hidden && !clockReducedMotion.matches;
     el.clock.setAttribute('aria-label', '남은 시간 ' + text);
+    // 1시간을 넘기면 H:MM:SS 일곱 글자가 되어 링 밖으로 넘친다. 한 단계 줄인다.
+    el.clock.classList.toggle(
+      'has-hours',
+      remain >= 3600 || text.length >= 7
+    );
 
     if (text.length !== lastClockText.length) {
       const digits = Array.from(text, char => {
