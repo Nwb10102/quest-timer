@@ -1,21 +1,21 @@
 {
   "name": "quest-timer",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "퀘스트를 깨듯 공부하는 집중 타이머",
   "main": "main.js",
   "private": true,
   "scripts": {
-    "start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1 -Run",
+    "start": "electron .",
     "shot": "electron scripts/shot.js",
     "test": "node --test",
-    "smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1 -Smoke",
+    "smoke": "electron scripts/smoke.js",
     "icon": "electron scripts/make-icon.js",
-    "pack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1",
-    "dist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1",
-    "start:electron": "electron .",
-    "smoke:electron": "electron scripts/smoke.js",
-    "dist:electron": "electron-builder",
-    "release": "electron-builder --publish always"
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "release": "electron-builder --publish always",
+    "start:webview2": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1 -Run",
+    "smoke:webview2": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1 -Smoke",
+    "dist:webview2": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1"
   },
   "devDependencies": {
     "electron": "^44.3.0",
@@ -38,7 +38,12 @@
     "files": [
       "main.js",
       "preload.js",
-      "src/**/*"
+      "windows-notifications.js",
+      "src/**/*",
+      "assets/font/Inter/*.ttf"
+    ],
+    "extraResources": [
+      { "from": "build/icon.ico", "to": "icon.ico" }
     ],
     "win": {
       "target": [

@@ -1,4 +1,4 @@
-Quest Timer 1.1.0 — WebView2
+Quest Timer 1.2.0 — WebView2
 
 ZIP 전체를 풀고 Quest Timer.exe를 실행하세요.
 exe 옆의 DLL 파일과 www 폴더가 함께 있어야 합니다.
