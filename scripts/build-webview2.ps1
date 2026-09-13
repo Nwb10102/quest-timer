@@ -30,6 +30,11 @@ try {
     @('Inter_18pt-Regular.ttf', 'Inter_18pt-Bold.ttf') | ForEach-Object {
         Copy-Item -LiteralPath (Join-Path $taskBinary "www/assets/font/Inter/$_") -Destination $taskFontOutput -Force
     }
+    # 화면 안에서 쓰는 로고. index.html 이 www 바깥을 가리키는 것처럼 적혀 있지만
+    # WebView2 는 www 를 뿌리로 삼으므로 ../ 가 www 로 돌아온다.
+    $taskImageOutput = Join-Path $taskOutput 'www/assets/image'
+    New-Item -ItemType Directory -Path $taskImageOutput -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $taskBinary 'www/assets/image/MainIcon.png') -Destination $taskImageOutput -Force
     $taskSdk = Join-Path $taskRoot '.cache/nuget/microsoft.web.webview2/1.0.4191.47'
     Copy-Item -LiteralPath (Join-Path $taskSdk 'LICENSE.txt') -Destination (Join-Path $taskOutput 'WebView2-LICENSE.txt') -Force
     Copy-Item -LiteralPath (Join-Path $taskSdk 'NOTICE.txt') -Destination (Join-Path $taskOutput 'WebView2-NOTICE.txt') -Force

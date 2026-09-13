@@ -22,6 +22,7 @@
     <Reference Include="System.IO.Compression.FileSystem" />
     <Content Include="../src/**" Link="www/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../assets/font/Inter/*.ttf" Link="www/assets/font/Inter/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../assets/image/*.png" Link="www/assets/image/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../build/icon.ico" Link="icon.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
