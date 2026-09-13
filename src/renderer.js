@@ -46,6 +46,9 @@
     prefsNote: $('prefsNote'),
     sealStage: $('sealStage'), sealLevel: $('sealLevel'), sealCaption: $('sealCaption'),
     toast: $('toast'),
+    updNote: $('updNote'), updNoteText: $('updNoteText'), updNoteMeta: $('updNoteMeta'),
+    updNoteBar: $('updNoteBar'), updNoteFill: $('updNoteFill'),
+    btnUpdNoteGo: $('btnUpdNoteGo'), btnUpdNoteClose: $('btnUpdNoteClose'),
     views: {
       field: $('viewField'), sheet: $('viewSheet'), log: $('viewLog'),
       profile: $('viewProfile'), prefs: $('viewPrefs'),
@@ -90,7 +93,7 @@
   let upd = { status: 'idle', version: null, percent: 0, error: null };
   let appVersion = '';
   let updPackaged = false;
-  let sawReady = false;
+  let noteClosedVersion = null;   // 닫은 버전은 다시 조르지 않는다
   let panelCollapsed = false;
   let panelBeforeFocus = false;
   let focusSession = false;
@@ -1055,19 +1058,20 @@
         el.updStatus.append('개발 중 실행에서는 업데이트를 확인하지 않습니다. 설치한 앱에서만 동작합니다.');
         break;
       case 'checking':
-        el.updStatus.append('새 판이 있는지 확인하는 중...');
+        el.updStatus.append('새로운 버전이 있는지 확인하는 중...');
         break;
       case 'current':
-        el.updStatus.append('최신 판을 쓰고 있습니다.');
+        el.updStatus.append('최신 버전을 쓰고 있습니다.');
         break;
       case 'available':
-        el.updStatus.append(strong('v' + upd.version), ' 이 나왔습니다.');
+        el.updStatus.append('새로운 버전이 나왔습니다 — ', strong('v' + upd.version));
         break;
       case 'downloading':
-        el.updStatus.append('v' + upd.version + ' 받는 중 ', strong(pct + '%'));
+        el.updStatus.append('새로운 버전 v' + upd.version + ' 받는 중 ', strong(pct + '%'));
         break;
       case 'ready':
-        el.updStatus.append(strong('v' + upd.version), ' 을 받아뒀습니다. 다시 시작하면 적용됩니다.');
+        el.updStatus.append('새로운 버전을 받아뒀습니다 — ', strong('v' + upd.version),
+          '. 다시 시작하면 적용됩니다.');
         break;
       case 'error':
         el.updStatus.append(strong('확인 실패'), ' — ' + (upd.error || '알 수 없는 문제'));
@@ -1076,13 +1080,46 @@
         el.updStatus.append(updPackaged ? '아직 확인하지 않았습니다.' : '');
     }
 
-    // 받아둔 판이 있으면 어느 탭에 있어도 한 번 알려준다
-    if (upd.status === 'ready' && !sawReady) {
-      sawReady = true;
-      say('v' + upd.version + ' 을 받아뒀습니다.', false,
-        { label: '다시 시작', run: () => api.installUpdate(), strong: true });
+    paintUpdNote();
+  }
+
+  // 새로운 버전이 나오면 어느 화면에 있든 오른쪽 아래에 알린다.
+  // 토스트와 달리 스스로 사라지지 않는다 - 실행 중에 지나쳐도 남아 있어야 한다.
+  function paintUpdNote() {
+    const live = upd.status === 'available' || upd.status === 'downloading' || upd.status === 'ready';
+    // 설정 화면에는 같은 내용이 이미 있다. 그 위를 덮지 않는다.
+    if (!live || !upd.version || upd.version === noteClosedVersion || !el.views.prefs.hidden) {
+      el.updNote.hidden = true;
+      return;
     }
-    if (upd.status !== 'ready') sawReady = false;
+
+    const pct = Math.max(0, Math.min(100, upd.percent || 0));
+    el.updNoteBar.hidden = upd.status !== 'downloading';
+    el.updNoteFill.style.width = pct + '%';
+    el.btnUpdNoteGo.hidden = upd.status === 'downloading';
+
+    if (upd.status === 'ready') {
+      el.updNoteText.textContent = '새로운 버전을 받아뒀습니다.';
+      el.updNoteMeta.textContent = 'v' + upd.version + ' · 다시 시작하면 적용됩니다';
+      el.btnUpdNoteGo.textContent = '다시 시작해서 설치';
+    } else if (upd.status === 'downloading') {
+      el.updNoteText.textContent = '새로운 버전을 받는 중입니다.';
+      el.updNoteMeta.textContent = 'v' + upd.version + ' · ' + pct + '%';
+    } else {
+      el.updNoteText.textContent = '새로운 버전이 있습니다!';
+      el.updNoteMeta.textContent = 'v' + upd.version;
+      el.btnUpdNoteGo.textContent = '업데이트 하기';
+    }
+
+    el.updNote.hidden = false;
+  }
+
+  // 구간이 도는 중에 앱을 껐다 켜면 기록이 어그러진다. 끝낸 뒤에 설치한다.
+  function installNow() {
+    if (run.mode === 'live' || run.mode === 'held') {
+      return say('구간이 진행 중입니다. 끝낸 뒤에 설치해 주세요.');
+    }
+    api.installUpdate();
   }
 
   // ── 낙관과 토스트 ──────────────────────────────────────
@@ -1217,18 +1254,22 @@
     el.prefAutoUpdate.addEventListener('change', async () => {
       state.settings.autoUpdate = el.prefAutoUpdate.checked;
       await api.setAutoUpdate(state.settings.autoUpdate);
-      // 켜는 순간 이미 나온 판이 있으면 바로 받는다
+      // 켜는 순간 이미 나온 버전이 있으면 바로 받는다
       if (state.settings.autoUpdate && upd.status === 'available') api.downloadUpdate();
       save();
     });
 
     el.btnUpdCheck.addEventListener('click', () => api.checkUpdate());
     el.btnUpdGet.addEventListener('click', () => api.downloadUpdate());
-    el.btnUpdInstall.addEventListener('click', () => {
-      if (run.mode === 'live' || run.mode === 'held') {
-        return say('구간이 진행 중입니다. 끝낸 뒤에 설치해 주세요.');
-      }
-      api.installUpdate();
+    el.btnUpdInstall.addEventListener('click', installNow);
+
+    el.btnUpdNoteGo.addEventListener('click', () => {
+      if (upd.status === 'ready') return installNow();
+      api.downloadUpdate();
+    });
+    el.btnUpdNoteClose.addEventListener('click', () => {
+      noteClosedVersion = upd.version;
+      el.updNote.hidden = true;
     });
 
     el.prefOnTop.addEventListener('change', async () => {
@@ -1317,6 +1358,7 @@
       if (selected) t.setAttribute('aria-current', 'page');
       else t.removeAttribute('aria-current');
     });
+    paintUpdNote();
     if (name === 'sheet') renderSheet();
     if (name === 'log') renderLog();
     if (name === 'profile') renderProfile();

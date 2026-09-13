@@ -269,6 +269,15 @@
   <p class="seal-caption" id="sealCaption">레벨 2</p>
 </div>
 
+<!-- 새로운 버전 알림. 어느 화면에 있든 오른쪽 아래에 뜬다. -->
+<aside class="upd-note" id="updNote" hidden aria-live="polite">
+  <button type="button" class="upd-note-close" id="btnUpdNoteClose" aria-label="알림 닫기">✕</button>
+  <p class="upd-note-text" id="updNoteText"></p>
+  <p class="upd-note-meta" id="updNoteMeta"></p>
+  <div class="upd-note-bar" id="updNoteBar" hidden><i id="updNoteFill"></i></div>
+  <button type="button" class="btn btn-go upd-note-go" id="btnUpdNoteGo">업데이트 하기</button>
+</aside>
+
 <div class="toast" id="toast" hidden></div>
 
 <script src="host.js"></script>

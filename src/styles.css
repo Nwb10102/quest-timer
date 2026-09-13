@@ -919,6 +919,71 @@ button, input { font: inherit; color: inherit; }
 .toast .btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.22); }
 .toast .btn:active { transform: scale(.96); }
 
+/* ── 새로운 버전 알림 ───────────────────────────────────── */
+/* 토스트와 달리 스스로 사라지지 않는다. 공부를 가리지 않게 구석에 둔다. */
+.upd-note {
+  position: fixed;
+  right: 18px;
+  bottom: 92px;
+  z-index: 12;
+  width: min(272px, calc(100% - 36px));
+  padding: 15px 16px 16px;
+  background: var(--jjok-deep);
+  border: 1px solid var(--jjok-line);
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+  animation: upd-note-in 320ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.upd-note[hidden] { display: none; }
+@keyframes upd-note-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.upd-note-text { margin: 0 22px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--hanji); }
+.upd-note-meta {
+  margin: 5px 0 0;
+  font-family: var(--num);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--meok-mute);
+}
+.upd-note-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--meok-mute);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+.upd-note-close:hover { color: var(--hanji); background: rgba(255, 255, 255, 0.06); }
+.upd-note-bar {
+  margin-top: 11px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--jjok);
+  box-shadow: inset 0 0 0 1px var(--jjok-line);
+  overflow: hidden;
+}
+.upd-note-bar[hidden] { display: none; }
+.upd-note-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--cheongja);
+  transition: width 0.3s ease-out;
+}
+.upd-note-go { margin-top: 12px; width: 100%; }
+.upd-note-go[hidden] { display: none; }
+
 
 /* ── 좁은 창 ────────────────────────────────────────────── */
 @media (max-width: 920px) {
@@ -1084,12 +1149,13 @@ body.is-focusing .timer-ring { margin-top: 28px; }
   .tabs { bottom: 12px; padding: 4px; }
   .tab { min-height: 44px; gap: 3px; }
   .tab svg { width: 18px; height: 18px; }
-  .toast { bottom: 82px; }
+  .toast, .upd-note { bottom: 82px; }
 }
 @media (max-width: 620px) {
   :root { --rail-w: 170px; }
   .tabs { width: min(320px, calc(100% - 16px)); gap: 1px; }
   .tab { font-size: 10px; }
+  .upd-note { right: 12px; left: 12px; width: auto; }
 }
 
 /* Each changing digit slides down; generated outgoing text stays out of the timer value. */

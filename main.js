@@ -164,7 +164,7 @@ function rearmAfterResume() {
 }
 
 // ── 업데이트 ────────────────────────────────────────────────
-// GitHub 릴리스를 보고 새 판을 받아온다. 받는 것까지는 알아서 하지만
+// GitHub 릴리스를 보고 새로운 버전을 받아온다. 받는 것까지는 알아서 하지만
 // 설치는 반드시 사용자가 눌러야 한다 - 공부 중에 앱이 꺼지면 안 된다.
 const CHECK_EVERY_MS = 6 * 3600 * 1000;
 
@@ -210,7 +210,7 @@ function initUpdater() {
 
 function checkUpdate() {
   if (!app.isPackaged) return;
-  // 이미 받아둔 판이 있으면 다시 확인할 필요가 없다
+  // 이미 받아둔 버전이 있으면 다시 확인할 필요가 없다
   if (update.status === 'downloading' || update.status === 'ready') return;
   autoUpdater.checkForUpdates().catch((err) => {
     pushUpdate({ status: 'error', error: (err && err.message) ? err.message : String(err) });

@@ -15,7 +15,7 @@ using System.Web.Script.Serialization;
 namespace QuestTimer
 {
     /// <summary>
-    /// GitHub 릴리스를 보고 새 판을 받아온다.
+    /// GitHub 릴리스를 보고 새로운 버전을 받아온다.
     ///
     /// 받는 것까지만 알아서 하고 설치는 사용자가 눌러야 한다 - 공부 중에 앱이
     /// 꺼지면 안 된다. 실행 중인 exe 는 스스로를 덮어쓸 수 없으므로, 새 파일을
@@ -29,7 +29,7 @@ namespace QuestTimer
             var a = Parse(mine);
             var b = Parse(theirs);
             if (a == null || b == null) return 0;
-            return b.CompareTo(a);   // 0 보다 크면 theirs 가 더 새 판
+            return b.CompareTo(a);   // 0 보다 크면 theirs 가 더 새로운 버전
         }
 
         private const string Api = "https://api.github.com/repos/glglekdy/quest-timer/releases/latest";
@@ -38,7 +38,7 @@ namespace QuestTimer
         private readonly JavaScriptSerializer json;
         private readonly string workRoot;
         private readonly Action<object> report;
-        private string readyFolder;   // 풀어둔 새 판의 위치
+        private string readyFolder;   // 풀어둔 새로운 버전의 위치
         private bool busy;
 
         internal string Status { get; private set; } = "idle";
@@ -50,7 +50,7 @@ namespace QuestTimer
         /// <summary>앱 폴더. 여기에 새 파일을 덮어쓴다.</summary>
         internal static string AppFolder => AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
 
-        /// <summary>지금 돌고 있는 판. 어셈블리 버전에서 읽는다.</summary>
+        /// <summary>지금 돌고 있는 버전. 어셈블리 버전에서 읽는다.</summary>
         internal static string CurrentVersion
         {
             get
@@ -62,7 +62,7 @@ namespace QuestTimer
 
         private readonly string mineText;
 
-        /// <param name="currentVersion">비교 기준이 될 현재 판. 시험할 때 바꿔 넣는다.</param>
+        /// <param name="currentVersion">비교 기준이 될 현재 버전. 시험할 때 바꿔 넣는다.</param>
         internal Updater(JavaScriptSerializer serializer, string dataDirectory, Action<object> onState,
                          string currentVersion = null)
         {
@@ -150,7 +150,7 @@ namespace QuestTimer
 
                 if (mine != null && latest <= mine) { Set("current", percent: 0); return; }
 
-                // WebView2 판은 zip 으로 배포한다. 같은 릴리스에 Electron 설치 파일이
+                // WebView2 쪽은 zip 으로 배포한다. 같은 릴리스에 Electron 설치 파일이
                 // 섞여 있을 수 있으므로 zip 만 고른다.
                 var assets = (release["assets"] as object[] ?? new object[0])
                     .OfType<Dictionary<string, object>>()
