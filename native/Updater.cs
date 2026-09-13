@@ -166,7 +166,14 @@ namespace QuestTimer
                 var zip = assets.FirstOrDefault(a => a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
                                                      && a.Name.IndexOf("webview2", StringComparison.OrdinalIgnoreCase) >= 0)
                           ?? assets.FirstOrDefault(a => a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
-                if (zip == null) throw new InvalidDataException("이 릴리스에는 WebView2 zip 이 없습니다.");
+
+                // 릴리스에 설치본만 올라오는 날이 있다. 받아올 길이 없을 뿐 잘못된
+                // 것은 아니므로, 오류로 겁주지 말고 새 버전이 나왔다고만 알린다.
+                if (zip == null)
+                {
+                    Set("manual", latest.Major + "." + latest.Minor + "." + latest.Build, 0);
+                    return;
+                }
 
                 pending = new Asset
                 {

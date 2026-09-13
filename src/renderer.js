@@ -1066,6 +1066,11 @@
       case 'available':
         el.updStatus.append('새로운 버전이 나왔습니다 — ', strong('v' + upd.version));
         break;
+      case 'manual':
+        // 이 판으로 받아올 파일이 릴리스에 없다. 알리기만 하고 조르지 않는다.
+        el.updStatus.append('새로운 버전이 나왔습니다 — ', strong('v' + upd.version),
+          '. 릴리스 페이지에서 설치본을 받아 주세요.');
+        break;
       case 'downloading':
         el.updStatus.append('새로운 버전 v' + upd.version + ' 받는 중 ', strong(pct + '%'));
         break;
