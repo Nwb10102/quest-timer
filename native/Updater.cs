@@ -133,6 +133,7 @@ namespace QuestTimer
             busy = true;
             try
             {
+                Sweep(null);   // 이미 설치했거나 못 쓰게 된 것부터 치운다
                 Set("checking");
                 string body;
                 using (var client = NewClient())
@@ -200,6 +201,7 @@ namespace QuestTimer
             try
             {
                 Set("downloading", pending.Version, 0);
+                Sweep(pending.Version);
                 var work = Path.Combine(workRoot, pending.Version);
                 if (Directory.Exists(work)) Directory.Delete(work, true);
                 Directory.CreateDirectory(work);
@@ -252,6 +254,32 @@ namespace QuestTimer
                 Set("error", error: Describe(ex));
             }
             finally { busy = false; }
+        }
+
+        /// <summary>
+        /// 받아둔 옛 버전을 치운다. 버전마다 zip 과 풀어둔 앱이 남아 쌓이기 때문이다.
+        /// keep 을 주면 그것만 남기고, 주지 않으면 지금 버전보다 새 것만 남긴다.
+        /// </summary>
+        private void Sweep(string keep)
+        {
+            if (!Directory.Exists(workRoot)) return;
+
+            foreach (var dir in Directory.GetDirectories(workRoot))
+            {
+                var name = Path.GetFileName(dir);
+                if (keep != null && string.Equals(name, keep, StringComparison.OrdinalIgnoreCase)) continue;
+                // 아직 설치하지 않은 새 버전은 남겨둔다. 번호를 못 읽으면 찌꺼기다.
+                if (keep == null && CompareVersions(mineText, name) > 0) continue;
+                try { Directory.Delete(dir, true); }
+                catch { /* 쓰는 중이면 다음 기회에 */ }
+            }
+
+            // 앱을 닫은 뒤 스스로 지우는 배치다. 못 지우고 남은 것을 거둔다.
+            foreach (var script in Directory.GetFiles(workRoot, "apply-*.cmd"))
+            {
+                try { File.Delete(script); }
+                catch { /* 지금 도는 중일 수 있다 */ }
+            }
         }
 
         /// <summary>체크섬 파일에서 이 zip 의 sha256 을 찾아 대조한다.</summary>

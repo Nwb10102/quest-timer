@@ -224,6 +224,49 @@ function downloadUpdate() {
   });
 }
 
+// electron-updater 는 받아둔 설치 파일을 캐시에 남긴다. 설치가 끝난 뒤에도
+// 그대로라서 100MB 가 넘는 파일이 놀고 있게 된다. 아직 설치하지 않은 새 버전만
+// 남기고 나머지는 켤 때 치운다.
+function cachedVersion(dir) {
+  try {
+    const info = JSON.parse(fs.readFileSync(path.join(dir, 'pending', 'update-info.json'), 'utf8'));
+    const found = /(\d+)\.(\d+)\.(\d+)/.exec(info && info.fileName);
+    return found ? found.slice(1, 4).map(Number) : null;
+  } catch (err) {
+    return null; // 읽히지 않으면 쓸 수 없는 찌꺼기로 본다
+  }
+}
+
+function isNewerThanNow(version) {
+  const now = app.getVersion().split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const a = version[i] || 0;
+    const b = now[i] || 0;
+    if (a !== b) return a > b;
+  }
+  return false;
+}
+
+function sweepUpdateCache() {
+  if (!app.isPackaged || !process.env.LOCALAPPDATA) return;
+  // 캐시 폴더 이름은 앱 이름에서 나온다. 둘이 다를 수 있어 모두 살펴본다.
+  const names = new Set([app.getName(), require('./package.json').name]);
+  for (const name of names) {
+    if (!name) continue;
+    const dir = path.join(process.env.LOCALAPPDATA, name + '-updater');
+    if (!fs.existsSync(dir)) continue;
+
+    const version = cachedVersion(dir);
+    if (version && isNewerThanNow(version)) continue; // 이건 아직 쓸 일이 남았다
+
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch (err) {
+      console.error('[updater] 받아둔 설치 파일을 치우지 못했습니다:', err.message);
+    }
+  }
+}
+
 // ── 앱 수명주기 ─────────────────────────────────────────────
 // 두 인스턴스가 같은 data.json 에 쓰면 기록이 깨진다.
 if (!app.requestSingleInstanceLock()) {
@@ -278,6 +321,7 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     createWindow();
+    sweepUpdateCache();
     initUpdater();
 
     powerMonitor.on('resume', rearmAfterResume);
