@@ -65,6 +65,10 @@ app.whenReady().then(() => {
 async function run() {
   await ready;
   const win = BrowserWindow.getAllWindows()[0];
+  // 창이 화면 한가운데 뜨므로 도는 동안 PC 를 쓰다 클릭하면 시험이 깨진다.
+  // 실제로 정산 화면의 확인 단추가 눌려 닫힌 적이 있다. 조작은 모두 스크립트로
+  // 하므로 마우스는 창을 그대로 통과시켜 뒤에 있는 창으로 보낸다.
+  win.setIgnoreMouseEvents(true);
   win.webContents.on('console-message', (e) => {
     if (e.level === 'error') problems.push(e.message);
   });
