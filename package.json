@@ -77,7 +77,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "Nwb10102",
+        "owner": "glglekdy",
         "repo": "quest-timer",
         "releaseType": "release"
       }
