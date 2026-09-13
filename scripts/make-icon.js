@@ -50,8 +50,8 @@ function page(zoom, filter) {
  */
 const DESIGNS = {
   large: page(1, 'none'),
-  mid: page(1.12, 'brightness(1.18) contrast(1.08)'),
-  small: page(1.26, 'brightness(1.45) contrast(1.25) saturate(1.1)'),
+  mid: page(1.12, 'brightness(1.10) contrast(1.04)'),
+  small: page(1.26, 'brightness(1.26) contrast(1.14) saturate(1.05)'),
 };
 
 /** 이 크기에 쓸 그림. */
