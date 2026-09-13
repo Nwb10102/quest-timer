@@ -1,3 +1,18 @@
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/font/Inter/Inter_18pt-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/font/Inter/Inter_18pt-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 /*
  * styles.css - 「원정 기록부」
  *
@@ -18,9 +33,8 @@
   --cheongja:   #A1B5E5;  /* 푸른빛 - 진행 중 */
   --geum:       #D2A93B;  /* 금 - 레벨/XP 전용 */
 
-  --han: "Malgun Gothic", "맑은 고딕", "NanumGothic", system-ui, sans-serif;
-  --num: "Bahnschrift SemiCondensed", "Bahnschrift", "DIN Alternate",
-         "Segoe UI", var(--han);
+  --han: "Inter", "Malgun Gothic", "맑은 고딕", "NanumGothic", system-ui, sans-serif;
+  --num: var(--han);
 
   --strip-h: 44px;
   --rail-w: 264px;
@@ -76,7 +90,7 @@ button, input { font: inherit; color: inherit; }
 .wordmark {
   margin: 0;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.03em;
 }
 
@@ -89,8 +103,6 @@ button, input { font: inherit; color: inherit; }
 
 .rank-level {
   font-family: var(--num);
-  font-variation-settings: "wdth" 87.5, "wght" 600;
-  font-stretch: 87.5%;
   font-size: 15px;
   color: var(--geum);
   letter-spacing: 0.02em;
@@ -176,7 +188,7 @@ button, input { font: inherit; color: inherit; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.quest.is-on .quest-title { font-weight: 600; }
+.quest.is-on .quest-title { font-weight: 700; }
 
 .quest-min {
   font-family: var(--num);
@@ -299,7 +311,7 @@ button, input { font: inherit; color: inherit; }
   background: var(--cheongja);
   border-color: var(--cheongja);
   color: var(--jjok);
-  font-weight: 600;
+  font-weight: 700;
 }
 /* 오늘 표시. 절대 위치라 글자를 밀지 않는다. */
 .dchip.is-today::after {
@@ -335,7 +347,7 @@ button, input { font: inherit; color: inherit; }
 .btn-go {
   background: var(--hanji);
   color: var(--jjok);
-  font-weight: 600;
+  font-weight: 700;
   padding-inline: 32px;
 }
 .btn-go:hover { background: #fff; }
@@ -410,7 +422,7 @@ button, input { font: inherit; color: inherit; }
 .field-title {
   margin: 2px 0 0;
   font-size: 21px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.4;
   max-width: 30ch;
   overflow: hidden;
@@ -422,9 +434,7 @@ button, input { font: inherit; color: inherit; }
 .clock {
   margin-top: 14px;
   font-family: var(--num);
-  font-variation-settings: "wdth" 85, "wght" 650;
-  font-stretch: 85%;
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(92px, 14.5vw, 172px);
   line-height: 0.92;
   letter-spacing: 0.005em;
@@ -502,7 +512,7 @@ button, input { font: inherit; color: inherit; }
 .tally path.is-fresh { animation: draw-in 0.45s ease-out both; }
 
 .today-text { margin: 0; font-size: 12.5px; color: var(--meok-mute); }
-.today-text b { color: var(--juhong); font-weight: 600; font-family: var(--num); }
+.today-text b { color: var(--juhong); font-weight: 700; font-family: var(--num); }
 
 /* ── 시간표 ─────────────────────────────────────────────────
    퀘스트 × 요일 격자. 칸 하나가 "이 퀘스트가 그 요일에 나오는가"다. */
@@ -604,8 +614,6 @@ button, input { font: inherit; color: inherit; }
 .stat-num {
   display: block;
   font-family: var(--num);
-  font-variation-settings: "wdth" 87.5, "wght" 620;
-  font-stretch: 87.5%;
   font-size: 30px;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -678,7 +686,7 @@ button, input { font: inherit; color: inherit; }
 }
 
 .upd-status { margin: 0; font-size: 13px; color: var(--meok-mute); min-height: 1.5em; }
-.upd-status b { color: var(--hanji); font-weight: 600; }
+.upd-status b { color: var(--hanji); font-weight: 700; }
 .upd-status.is-ready b { color: var(--cheongja); }
 .upd-status.is-error b { color: var(--juhong); }
 
@@ -705,7 +713,7 @@ button, input { font: inherit; color: inherit; }
 .profile { width: 100%; max-width: 760px; margin: 8px auto 0; flex: none; }
 .profile-header { display: flex; align-items: center; gap: 16px; }
 .profile-emblem { width: 56px; height: 56px; display: grid; place-items: center; flex: none; border: 1px solid var(--jjok-line); border-radius: 16px; color: var(--cheongja); font-size: 28px; background: var(--jjok-deep); }
-.profile-title { margin: 0; font-size: 23px; font-weight: 600; }
+.profile-title { margin: 0; font-size: 23px; font-weight: 700; }
 .profile-subtitle { margin: 3px 0 0; font-size: 12px; color: var(--meok-mute); }
 .profile-level { margin-left: auto; color: var(--geum); font: 32px/1 var(--num); white-space: nowrap; }
 .profile-growth { margin-top: 26px; }
@@ -719,7 +727,7 @@ button, input { font: inherit; color: inherit; }
 .profile-stats span { font-size: 11px; color: var(--meok-mute); }
 .profile-achievements { padding-top: 22px; border-top: 1px solid var(--jjok-line); }
 .profile-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-.profile-section-heading h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.profile-section-heading h3 { font-size: 15px; font-weight: 700; margin: 0; }
 .profile-section-heading p { margin: 0; font-size: 12px; color: var(--meok-mute); }
 .profile .badges { grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 22px 18px; padding-bottom: 10px; }
 .badges {
@@ -753,10 +761,17 @@ button, input { font: inherit; color: inherit; }
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.75);
 }
 .badge-name { font-size: 13.5px; color: var(--meok-mute); }
-.badge.is-open .badge-name { color: var(--hanji); font-weight: 600; }
+.badge.is-open .badge-name { color: var(--hanji); font-weight: 700; }
 .badge-hint { font-size: 11.5px; color: var(--meok-mute); line-height: 1.5; }
 
 /* ── 설정 ───────────────────────────────────────────────── */
+/* Keep settings, version information, and the note in one centered column. */
+#viewPrefs > .prefs, #viewPrefs > .upd, #viewPrefs > .note {
+  width: 100%;
+  max-width: 600px;
+  margin-inline: auto;
+  flex: none;
+}
 .prefs { list-style: none; margin: 0; padding: 0; flex: none; max-width: 600px; }
 .prefs li {
   display: flex;
@@ -825,7 +840,6 @@ button, input { font: inherit; color: inherit; }
 }
 .seal-level {
   font-family: var(--num);
-  font-variation-settings: "wght" 700;
   font-weight: 700;
   font-size: 64px;
   line-height: 1;
@@ -856,12 +870,15 @@ button, input { font: inherit; color: inherit; }
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 26px;
+  bottom: 92px;
   transform: translateX(-50%);
   padding: 9px 18px;
   background: var(--jjok-deep);
   border: 1px solid var(--jjok-line);
-  border-radius: 2px;
+  border-radius: 999px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  overflow-wrap: anywhere;
   font-size: 13px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   z-index: 11;
@@ -870,7 +887,7 @@ button, input { font: inherit; color: inherit; }
 
 /* 울리는 중인 완주 알림. 끄기 전까지 남아 있으므로 눈에 띄어야 한다. */
 .toast.is-alarm {
-  padding: 11px 14px 11px 20px;
+  padding: 6px 8px 6px 18px;
   border-color: var(--juhong);
   animation: alarm-breathe 1.9s ease-in-out infinite;
 }
@@ -888,7 +905,20 @@ button, input { font: inherit; color: inherit; }
   0%, 100% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 0 rgba(206, 59, 44, 0.5); }
   50%      { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 5px rgba(206, 59, 44, 0); }
 }
-.toast b { color: var(--geum); font-family: var(--num); font-weight: 600; }
+.toast b { color: var(--geum); font-family: var(--num); font-weight: 700; }
+.toast .btn {
+  min-height: 36px;
+  padding: 7px 15px;
+  margin-left: 6px;
+  border-radius: 999px;
+  vertical-align: middle;
+  background: rgba(255,255,255,.05);
+  border-color: rgba(255,255,255,.12);
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+.toast .btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.22); }
+.toast .btn:active { transform: scale(.96); }
+
 
 /* ── 좁은 창 ────────────────────────────────────────────── */
 @media (max-width: 920px) {
@@ -917,14 +947,14 @@ body.panel-collapsed .body { grid-template-columns: 0px minmax(0, 1fr); }
 .rail-scroll, .compose { width: var(--rail-w); }
 body.panel-collapsed .rail { opacity: 0; transform: translateX(-18px); pointer-events: none; border: 0; }
 .rail-scroll { padding-top: 25px; }
-.group-name { border: 0; font-weight: 600; margin-bottom: 7px; }
+.group-name { border: 0; font-weight: 700; margin-bottom: 7px; }
 .quest { border-radius: 7px; margin-bottom: 4px; padding-block: 10px; }
 .quest.is-on { border-left-color: var(--cheongja); background: rgba(161,181,229,.1); }
 .quest:focus-within .quest-drop { opacity: 1; }
 .compose { border-top-color: rgba(160,171,194,.12); }
 .compose-open { border-radius: 6px; }
 .compose-open:hover { background: rgba(160,171,194,.07); }
-.content { position: relative; isolation: isolate; overflow: hidden; }
+.content { position: relative; isolation: isolate; overflow: hidden; padding-bottom: 84px; }
 .content::before { content: ''; position: absolute; inset: 8% 4%; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 43% 50%, rgba(38,65,175,.36), transparent 63%), radial-gradient(ellipse at 66% 63%, rgba(58,47,131,.18), transparent 57%); filter: blur(42px); opacity: 1; animation: ambient-drift 22s ease-in-out infinite alternate; transition: opacity 1200ms ease; }
 body.is-running .content::before, body.is-away .content::before { opacity: 0; }
 @keyframes ambient-drift {
@@ -932,16 +962,56 @@ body.is-running .content::before, body.is-away .content::before { opacity: 0; }
   50% { transform: translate(4%, -3%) scale(1.06) rotate(3deg); }
   100% { transform: translate(-1%, 5%) scale(1.02) rotate(-2deg); }
 }
-.tabs { justify-content: center; padding-top: 16px; transition: opacity 650ms ease; }
-.tab { padding: 7px 13px; border-radius: 7px; }
-.tab.is-on { background: rgba(160,171,194,.09); }
+.tabs {
+  position: absolute;
+  z-index: 3;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, calc(100% - 32px));
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  background: rgba(44,44,47,.28);
+  backdrop-filter: blur(48px) saturate(160%);
+  -webkit-backdrop-filter: blur(48px) saturate(160%);
+  box-shadow: 0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.05);
+  transition: opacity 650ms ease;
+  -webkit-app-region: no-drag;
+}
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 3px;
+  border-radius: 999px;
+  color: #B8B8BE;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+.tab svg { width: 18px; height: 18px; flex: none; pointer-events: none; }
+.tab:not(.is-on) { font-weight: 400; }
+.tab span { white-space: nowrap; pointer-events: none; }
+.tab:hover { background: rgba(255,255,255,.05); color: #FFFFFF; }
+.tab:active { transform: scale(.94); }
+.tab.is-on { background: rgba(255,255,255,.12); color: #FFFFFF; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
 .tab.is-on::after { display: none; }
+.tab:focus-visible { outline-offset: -2px; }
 #viewField { padding-top: 12px; }
 /* 빠듯할 때는 줄어들 수 있어야 한다. 못 줄이면 스크롤바가 생기고,
    그 스크롤바가 가운데 정렬된 원형 타이머를 옆으로 밀어낸다. */
 .field-core { align-items: center; text-align: center; min-height: 0; flex: 1 1 auto; padding: 12px 0 22px; }
 .field-title { color: var(--hanji); font-size: 22px; max-width: min(100%, 32ch); margin-top: 5px; }
-.field-title.is-blank { color: var(--hanji); font-weight: 500; }
+.field-title.is-blank { color: var(--hanji); font-weight: 400; }
 /* 높이를 주고 폭은 aspect-ratio 로 따라오게 한다. 그래야 남은 공간이
    모자랄 때 링이 조금 줄어들며 맞춰지고, 스크롤이 생기지 않는다. */
 .timer-ring { position: relative; flex: 0 1 auto; min-height: 0; height: clamp(230px, 41vh, 360px); width: auto; max-width: 100%; aspect-ratio: 1; margin-top: 22px; }
@@ -952,7 +1022,7 @@ body.is-running .content::before, body.is-away .content::before { opacity: 0; }
 .timer-ring.is-held .ring-fill { stroke: var(--meok-mute); }
 .timer-ring.is-done .ring-fill { stroke: var(--juhong); }
 .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
-.clock { margin: 0; font-family: 'Bahnschrift', 'Segoe UI', var(--han); font-weight: 300; font-variation-settings: 'wght' 300; font-stretch: normal; font-size: clamp(44px, 9.8vh, 82px); letter-spacing: -.04em; line-height: 1; }
+.clock { margin: 0; font-family: var(--num); font-weight: 400; font-size: clamp(44px, 9.8vh, 82px); letter-spacing: -.04em; line-height: 1; }
 .clock-caption { color: var(--meok-mute); font-size: 12px; }
 .dial { margin-top: 16px; gap: 16px; }
 .minutes-lg input { font-size: 20px; width: 66px; }
@@ -961,6 +1031,34 @@ body.is-running .content::before, body.is-away .content::before { opacity: 0; }
 .acts { margin-top: 20px; min-height: 42px; justify-content: center; }
 .btn { border-radius: 8px; }
 .btn-go { min-width: 112px; }
+/* Rounded timer controls, matching the floating navigation. */
+.acts { gap: 10px; }
+.acts > button {
+  height: 42px;
+  min-width: 64px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1;
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+.acts > .btn-go { min-width: 112px; padding-inline: 28px; }
+.acts > .btn-quiet, .acts > .chip-wide {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.12);
+}
+.acts > .btn-plain {
+  background: rgba(255,255,255,.025);
+  border-color: rgba(255,255,255,.07);
+}
+.acts > button:not(.btn-go):not(:disabled):hover {
+  background: rgba(255,255,255,.1);
+  border-color: rgba(255,255,255,.22);
+  color: var(--hanji);
+}
+.acts > button:not(:disabled):active { transform: scale(.96); }
+.acts > .chip-wide:disabled { opacity: .4; }
+
 .today { justify-content: center; border: 0; padding-top: 0; flex: none; transition: opacity 650ms ease; }
 body.is-focusing .tabs, body.is-focusing .today, body.is-focusing .rank { opacity: .35; }
 body.is-focusing .tabs:hover, body.is-focusing .tabs:focus-within { opacity: 1; }
@@ -974,4 +1072,44 @@ body.is-focusing .timer-ring { margin-top: 28px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* Keep the floating navigation usable in compact windows. */
+@media (max-height: 640px) {
+  .content { padding-bottom: 74px; }
+  .tabs { bottom: 12px; padding: 4px; }
+  .tab { min-height: 44px; gap: 3px; }
+  .tab svg { width: 18px; height: 18px; }
+  .toast { bottom: 82px; }
+}
+@media (max-width: 620px) {
+  :root { --rail-w: 170px; }
+  .tabs { width: min(320px, calc(100% - 16px)); gap: 1px; }
+  .tab { font-size: 10px; }
+}
+
+/* Each changing digit slides down; generated outgoing text stays out of the timer value. */
+.clock { display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0; }
+.clock-digit, .clock-separator { position: relative; display: block; height: 1.15em; line-height: 1.15; }
+.clock-digit { width: 1ch; overflow: hidden; }
+.clock-separator { width: .28em; }
+.clock-value { display: block; }
+.clock-digit.is-changing::before {
+  content: attr(data-previous);
+  position: absolute;
+  inset: 0;
+  animation: clock-digit-out 300ms cubic-bezier(.4,0,.2,1) both;
+}
+.clock-digit.is-changing .clock-value { animation: clock-digit-in 300ms cubic-bezier(.4,0,.2,1) both; }
+@keyframes clock-digit-in {
+  from { transform: translateY(-30%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes clock-digit-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(30%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clock-digit.is-changing::before { display: none; }
+  .clock-digit.is-changing .clock-value { animation: none; }
 }

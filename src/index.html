@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;">
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:;">
 <title>Quest Timer</title>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -60,13 +60,6 @@
 
   <!-- 화면 -->
   <section class="content">
-    <nav class="tabs" id="tabs">
-      <button class="tab is-on" data-view="field">원정</button>
-      <button class="tab" data-view="sheet">시간표</button>
-      <button class="tab" data-view="log">기록</button>
-      <button class="tab" data-view="profile">프로필</button>
-      <button class="tab" data-view="prefs">설정</button>
-    </nav>
 
     <!-- 원정: 타이머 -->
     <div class="view" id="viewField">
@@ -232,8 +225,8 @@
         </li>
         <li>
           <div class="pref-label">
-            <span>새 판이 나오면 알아서 받기</span>
-            <small>받아두기만 하고, 설치는 눌러야 합니다. 공부 중에 앱이 꺼지지 않게.</small>
+            <span>새로운 버전이 나오면 알아서 받기</span>
+            <small>받아두기만 하고, 설치는 눌러야 합니다. 끊김없는 공부를 느껴보세요!</small>
           </div>
           <label class="switch">
             <input type="checkbox" id="prefAutoUpdate" checked>
@@ -258,6 +251,13 @@
 
       <p class="note" id="prefsNote"></p>
     </div>
+    <nav class="tabs" id="tabs" aria-label="주요 메뉴">
+      <button type="button" class="tab is-on" data-view="field" aria-controls="viewField" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6M12 2v3"/></svg><span>원정</span></button>
+      <button type="button" class="tab" data-view="sheet" aria-controls="viewSheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M7 3v4M17 3v4M3 10h18M8 14h2M14 14h2"/></svg><span>시간표</span></button>
+      <button type="button" class="tab" data-view="log" aria-controls="viewLog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span>기록</span></button>
+      <button type="button" class="tab" data-view="profile" aria-controls="viewProfile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>프로필</span></button>
+      <button type="button" class="tab" data-view="prefs" aria-controls="viewPrefs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg><span>설정</span></button>
+    </nav>
   </section>
 </main>
 

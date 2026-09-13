@@ -15,10 +15,20 @@ try {
     # Explicit list: no Chromium, developer tools, WPF DLL, or duplicate loaders.
     @('Quest Timer.exe', 'Quest Timer.exe.config', 'Microsoft.Web.WebView2.Core.dll',
       'Microsoft.Web.WebView2.WinForms.dll', 'WebView2Loader.dll', 'icon.ico') | ForEach-Object {
-        Copy-Item -LiteralPath (Join-Path $taskBinary $_) -Destination $taskOutput -Force
+        $taskSourceFile = Join-Path $taskBinary $_
+        $taskDestFile = Join-Path $taskOutput $_
+        # An unchanged binary may still be in use by the running app.
+        if ((Test-Path -LiteralPath $taskDestFile) -and
+            ((Get-FileHash -LiteralPath $taskSourceFile).Hash -eq (Get-FileHash -LiteralPath $taskDestFile).Hash)) { return }
+        Copy-Item -LiteralPath $taskSourceFile -Destination $taskOutput -Force
     }
     @('index.html', 'styles.css', 'game.js', 'renderer.js', 'host.js') | ForEach-Object {
         Copy-Item -LiteralPath (Join-Path $taskBinary "www/$_") -Destination (Join-Path $taskOutput 'www') -Force
+    }
+    $taskFontOutput = Join-Path $taskOutput 'www/assets/font/Inter'
+    New-Item -ItemType Directory -Path $taskFontOutput -Force | Out-Null
+    @('Inter_18pt-Regular.ttf', 'Inter_18pt-Bold.ttf') | ForEach-Object {
+        Copy-Item -LiteralPath (Join-Path $taskBinary "www/assets/font/Inter/$_") -Destination $taskFontOutput -Force
     }
     $taskSdk = Join-Path $taskRoot '.cache/nuget/microsoft.web.webview2/1.0.4191.47'
     Copy-Item -LiteralPath (Join-Path $taskSdk 'LICENSE.txt') -Destination (Join-Path $taskOutput 'WebView2-LICENSE.txt') -Force

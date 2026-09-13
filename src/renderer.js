@@ -577,6 +577,59 @@
     renderField();
   }
 
+  let lastClockText = '';
+  let lastClockRemain = null;
+  const clockAnimationTimers = new WeakMap();
+  const clockReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function paintClockDigits(text, remain) {
+    if (text === lastClockText) return;
+    const animate = (run.mode === 'live' || run.mode === 'done')
+      && lastClockRemain !== null && lastClockRemain - remain === 1
+      && !document.hidden && !el.views.field.hidden && !clockReducedMotion.matches;
+    el.clock.setAttribute('aria-label', '남은 시간 ' + text);
+
+    if (text.length !== lastClockText.length) {
+      const digits = Array.from(text, char => {
+        const slot = document.createElement('span');
+        slot.className = char === ':' ? 'clock-separator' : 'clock-digit';
+        slot.setAttribute('aria-hidden', 'true');
+        const value = document.createElement('span');
+        value.className = 'clock-value';
+        value.textContent = char;
+        slot.appendChild(value);
+        value.addEventListener('animationend', () => {
+          clearTimeout(clockAnimationTimers.get(slot));
+          slot.classList.remove('is-changing');
+          slot.removeAttribute('data-previous');
+        });
+        return slot;
+      });
+      el.clock.replaceChildren(...digits);
+    } else {
+      Array.from(el.clock.children).forEach((slot, index) => {
+        if (text[index] === lastClockText[index]) return;
+        clearTimeout(clockAnimationTimers.get(slot));
+        slot.classList.remove('is-changing');
+        slot.removeAttribute('data-previous');
+        slot.firstElementChild.textContent = text[index];
+        if (animate && text[index] !== ':') {
+          slot.dataset.previous = lastClockText[index];
+          // Restart only the changing digit, even after a rapid resync.
+          void slot.offsetWidth;
+          slot.classList.add('is-changing');
+          // Hidden/minimized renderers may not dispatch animationend.
+          clockAnimationTimers.set(slot, setTimeout(() => {
+            slot.classList.remove('is-changing');
+            slot.removeAttribute('data-previous');
+          }, 340));
+        }
+      });
+    }
+    lastClockText = text;
+    lastClockRemain = remain;
+  }
+
   function paintClock() {
     const idle = run.mode === 'idle';
     const planned = idle
@@ -584,7 +637,7 @@
       : run.plannedSec;
     const remain = idle ? planned : remainingSec();
 
-    el.clock.textContent = G.formatClock(remain);
+    paintClockDigits(G.formatClock(remain), Math.max(0, Math.ceil(remain)));
     const gone = planned > 0 ? clamp(1 - remain / planned, 0, 1) : 0;
     el.inkFill.style.strokeDashoffset = (gone * 100).toFixed(3);
   }
@@ -1254,7 +1307,10 @@
     for (const key in el.views) el.views[key].hidden = key !== name;
     syncFocusMode();
     el.tabs.querySelectorAll('.tab').forEach((t) => {
-      t.classList.toggle('is-on', t.dataset.view === name);
+      const selected = t.dataset.view === name;
+      t.classList.toggle('is-on', selected);
+      if (selected) t.setAttribute('aria-current', 'page');
+      else t.removeAttribute('aria-current');
     });
     if (name === 'sheet') renderSheet();
     if (name === 'log') renderLog();

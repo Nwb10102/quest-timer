@@ -9,6 +9,7 @@ const { app, BrowserWindow, ipcMain, Notification, powerMonitor, shell } = requi
 const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const fs = require('node:fs');
+const { registerWindowsNotifications } = require('./windows-notifications');
 
 const APP_ID = 'com.questtimer.app';
 const COLOR_BG = '#101113';   // 쪽빛 - styles.css 의 --jjok 과 같아야 한다
@@ -238,6 +239,14 @@ if (!app.requestSingleInstanceLock()) {
   app.setAppUserModelId(APP_ID);
 
   app.whenReady().then(() => {
+    try {
+      const iconPath = app.isPackaged
+        ? path.join(process.resourcesPath, 'icon.ico')
+        : path.join(__dirname, 'build', 'icon.ico');
+      registerWindowsNotifications(APP_ID, iconPath);
+    } catch (err) {
+      console.error('[notifications] 앱 이름 등록 실패:', err.message);
+    }
     initPaths();
 
     ipcMain.handle('state:load', () => loadState());
