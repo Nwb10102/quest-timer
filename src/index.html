@@ -73,9 +73,10 @@
             <circle class="ring-track" cx="160" cy="160" r="148"/>
             <circle class="ring-fill" id="inkFill" cx="160" cy="160" r="148" pathLength="100"/>
           </svg>
+          <div class="break-ring" id="breakRing" aria-hidden="true"><div id="breakRingColor"></div></div>
           <div class="ring-center">
             <div class="clock" id="clock" role="timer" aria-label="남은 시간">25:00</div>
-            <span class="clock-caption">남은 시간</span>
+            <span class="clock-caption" id="clockCaption">남은 시간</span>
           </div>
         </div>
 
@@ -96,6 +97,7 @@
              기본 창 높이에서 넘쳐 스크롤이 생긴다. -->
         <div class="acts">
           <button class="btn btn-go" id="btnGo">시작</button>
+          <label class="break-toggle" id="breakToggle"><input type="checkbox" id="includeBreaks"><span class="break-toggle-button">휴식 포함</span></label>
           <button class="btn btn-quiet" id="btnHold" hidden>멈춤</button>
           <button type="button" class="chip chip-wide" id="btnPlus5" hidden>+5분</button>
           <button class="btn btn-plain" id="btnStop" hidden>그만하기</button>
@@ -206,13 +208,34 @@
         </li>
         <li>
           <div class="pref-label">
-            <span>완주 소리</span>
-            <small>시간이 다 되면 짧은 소리가 납니다.</small>
+            <span>집중 시간</span>
+            <small>휴식 포함 시 이 시간마다 쉽니다. 변경 사항은 다음 시작부터 적용됩니다.</small>
+          </div>
+          <label class="minutes"><input type="number" id="prefFocusMin" aria-label="집중 시간 (분)" min="1" max="600" value="25"><span>분</span></label>
+        </li>
+        <li>
+          <div class="pref-label">
+            <span>휴식 시간</span>
+            <small>선택한 전체 시간 안에 포함됩니다. 휴식은 집중 기록에서 제외되며 XP는 0.5배로 지급됩니다.</small>
+          </div>
+          <label class="minutes"><input type="number" id="prefBreakMin" aria-label="휴식 시간 (분)" min="1" max="600" value="5"><span>분</span></label>
+        </li>
+        <li>
+          <div class="pref-label">
+            <span>알림 소리</span>
+            <small>완료음, 휴식음, 휴식 종료음을 켜거나 끕니다.</small>
           </div>
           <label class="switch">
-            <input type="checkbox" id="prefSound" checked>
+            <input type="checkbox" id="prefSound" aria-label="알림 소리 켜기" checked>
             <span class="switch-track" aria-hidden="true"></span>
           </label>
+        </li>
+        <li>
+          <div class="pref-label">
+            <span>알림음 커스텀</span>
+            <small>MP3, WAV, OGG 등 오디오 파일을 선택하세요. 각 5MB·30초 이하이며 이 컴퓨터에 저장됩니다.</small>
+            <div class="sound-presets" id="soundPresets"></div>
+          </div>
         </li>
         <li>
           <div class="pref-label">
@@ -263,6 +286,19 @@
 </main>
 
 <!-- 레벨업 낙관 -->
+<dialog class="settlement" id="settlement" aria-labelledby="settlementTitle">
+  <p class="settlement-kicker">이번 구간의 기록</p>
+  <h2 id="settlementTitle">구간을 완주했습니다</h2>
+  <p class="settlement-time" id="settlementTime"></p>
+  <div class="settlement-total"><strong id="settlementXp"></strong><span>획득 XP</span></div>
+  <dl class="settlement-details" id="settlementDetails"></dl>
+  <div class="settlement-level">
+    <div><strong id="settlementLevel"></strong><span id="settlementLevelNote"></span></div>
+    <progress id="settlementProgress" aria-label="현재 레벨 경험치"></progress>
+    <p id="settlementNext"></p>
+  </div>
+  <button type="button" class="btn btn-go" id="settlementClose" autofocus>확인</button>
+</dialog>
 <div class="seal-stage" id="sealStage" hidden>
   <div class="seal" id="seal">
     <span class="seal-level" id="sealLevel">2</span>

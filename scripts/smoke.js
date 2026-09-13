@@ -18,7 +18,7 @@ const ROOT = path.join(__dirname, '..');
 
 // 평소 쓰는 기록을 건드리지 않도록 임시 폴더에 저장한다.
 // main.js 를 불러오기 전에 바꿔야 한다 - 거기서 곧바로 경로를 잡기 때문이다.
-app.setPath('userData', path.join(os.tmpdir(), 'quest-timer-smoke'));
+app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'quest-timer-smoke-')));
 const store = path.join(app.getPath('userData'), 'data.json');
 
 // Electron 메인 프로세스의 stdout 은 파이프로 넘길 때 버퍼링돼서
@@ -182,7 +182,7 @@ async function run() {
   check('시작하면 시간 고르기가 숨는다', !(await shown('#dial')));
   const t1 = await text('#clock');
   check('시계가 줄어든다', t1 !== '01:00' && t1.startsWith('00:5'), t1);
-  check('진행 중 상태 문구', (await text('#fieldState')) === '집중하는 중 (계획 1분)',
+  check('진행 중 상태 문구', (await text('#fieldState')) === '집중하는 중 (전체 1분)',
     await text('#fieldState'));
   check('시작하면 패널이 접히고 키보드 접근도 막힌다', await js("document.getElementById('questPanel').inert && document.getElementById('panelToggle').getAttribute('aria-expanded') === 'false'"));
   check('집중 배경의 그라데이션이 사라진다', await js("getComputedStyle(document.querySelector('.content'), '::before').opacity === '0'"));
@@ -211,8 +211,8 @@ async function run() {
     Math.abs((remainAfter - remainBefore) - 300) <= 2,
     remainBefore + '초 -> ' + remainAfter + '초');
   check('계획 총량이 5분 늘어난다',
-    stateBefore === '집중하는 중 (계획 1분)'
-    && (await text('#fieldState')) === '집중하는 중 (계획 6분)',
+    stateBefore === '집중하는 중 (전체 1분)'
+    && (await text('#fieldState')) === '집중하는 중 (전체 6분)',
     stateBefore + ' -> ' + (await text('#fieldState')));
 
   // +5분은 버튼 줄에 함께 앉으므로 집중 화면 높이를 늘리지 않아야 한다.
@@ -285,27 +285,24 @@ async function run() {
   check('기록에 구간이 남는다', hist >= 1, hist + '건');
 
   // ── 5.5 완주 알림은 끌 때까지 울린다 ───────────────────
-  check('완주하면 알림 배너가 뜬다',
-    !(await js("document.getElementById('toast').hidden"))
-    && (await js("document.getElementById('toast').classList.contains('is-alarm')")),
-    await text('#toast'));
-  check('배너에 끄는 버튼이 있다',
-    !!(await js("!!document.querySelector('#toast button')")),
-    await js("document.querySelector('#toast button') ? document.querySelector('#toast button').textContent : '(없음)'"));
+  check('완주하면 XP 정산 화면이 뜬다',
+    await js("document.getElementById('settlement').open"), await text('#settlementXp'));
+  check('정산 화면에 알림을 끄는 버튼이 있다',
+    (await text('#settlementClose')).includes('알림 끄기'), await text('#settlementClose'));
 
   // 저절로 사라지지 않아야 한다 - 자리를 비웠어도 놓치지 않게
   await wait(4200);
-  check('시간이 지나도 배너가 사라지지 않는다',
-    !(await js("document.getElementById('toast').hidden")));
+  check('시간이 지나도 정산 화면이 사라지지 않는다',
+    await js("document.getElementById('settlement').open"));
 
   // 울리는 중의 모습을 한 장 남긴다 (꾸민 것이 아니라 실제 상태)
   fs.writeFileSync(path.join(ROOT, 'shots', 'alarm.png'),
     (await win.webContents.capturePage()).toPNG());
 
-  await click('#toast button');
+  await click('#settlementClose');
   await wait(300);
-  check('끄기를 누르면 배너가 사라진다',
-    (await js("document.getElementById('toast').hidden"))
+  check('확인을 누르면 정산 화면이 닫힌다',
+    !(await js("document.getElementById('settlement').open"))
     && !(await js("document.getElementById('toast').classList.contains('is-alarm')")));
 
   // ── 6. 저장 ────────────────────────────────────────────

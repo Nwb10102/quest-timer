@@ -24,10 +24,10 @@ test('레벨 곡선', () => {
 });
 
 test('세션 XP - 완주 보너스와 포기 무패널티', () => {
-  // 50분 완주: 100 XP + 20% = 120
-  assert.equal(G.sessionXp({ focusedSec: 50 * 60, completed: true, isDaily: false }), 120);
+  // 50분 완주: 100 XP + 완주 20% + 사이클 10% = 130
+  assert.equal(G.sessionXp({ focusedSec: 50 * 60, completed: true, isDaily: false }), 130);
   // 일일 퀘스트 완주: 위 + 30
-  assert.equal(G.sessionXp({ focusedSec: 50 * 60, completed: true, isDaily: true }), 150);
+  assert.equal(G.sessionXp({ focusedSec: 50 * 60, completed: true, isDaily: true }), 160);
   // 중도 포기 10분: 보너스 없이 20 XP - 패널티는 없다
   assert.equal(G.sessionXp({ focusedSec: 10 * 60, completed: false, isDaily: true }), 20);
   // 분 단위 내림

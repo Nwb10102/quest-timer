@@ -25,8 +25,14 @@
     dayBoundaryHour: 4,    // 하루는 새벽 4시에 시작 - 밤샘 공부를 전날로 잡는다
     streakMinMinutes: 20,  // 하루 20분 이상이면 그날 인정
     sound: true,
+    completionSound: null,
+    breakStartSound: null,
+    breakEndSound: null,
     alwaysOnTop: false,
     defaultMinutes: 25,
+    includeBreaks: false,
+    focusMinutes: 25,
+    breakMinutes: 5,
     autoUpdate: true,      // 새로운 버전이 올라오면 알아서 받아둔다 (설치는 눌러야 한다)
   };
 
@@ -115,14 +121,22 @@
    * 포기 패널티는 없다 - 집중한 분만큼은 언제나 들어온다.
    */
   function sessionXp(s) {
-    const minutes = Math.floor((s.focusedSec || 0) / 60);
-    if (minutes <= 0) return 0;
-    let xp = minutes * XP_PER_MINUTE;
-    if (s.completed) {
-      xp = Math.floor(xp * (1 + COMPLETE_BONUS));
-      if (s.isDaily) xp += DAILY_BONUS_XP;
-    }
-    return xp;
+    return sessionReward(s).totalXp;
+  }
+
+  function sessionReward(s) {
+    const minutes = Math.floor(Math.max(0, s.focusedSec || 0) / 60);
+    const breakMinutes = Math.floor(Math.max(0, s.breakSec || 0) / 60);
+    const focusXp = minutes * XP_PER_MINUTE;
+    const breakXp = breakMinutes * XP_PER_MINUTE * 0.5;
+    const baseXp = focusXp + breakXp;
+    const cycles = Math.floor((Math.max(0, s.focusedSec || 0) + Math.max(0, s.breakSec || 0)) / 3000);
+    const cyclePercent = cycles * 10;
+    const cycleXp = Math.floor(baseXp * cyclePercent / 100);
+    const completeXp = s.completed ? Math.floor(baseXp * COMPLETE_BONUS) : 0;
+    const dailyXp = baseXp > 0 && s.completed && s.isDaily ? DAILY_BONUS_XP : 0;
+    return { focusXp, breakXp, baseXp, cycles, cyclePercent, cycleXp, completeXp, dailyXp,
+      totalXp: baseXp + cycleXp + completeXp + dailyXp };
   }
 
   /** 기록할 가치가 있는 세션인가. */
@@ -143,6 +157,35 @@
     const from = Math.max(0, plannedSec || 0);
     const next = Math.min(max, from + Math.max(0, addSec || 0));
     return { plannedSec: next, addedSec: next - from };
+  }
+
+  // 선택한 전체 시간 안에서 집중과 휴식을 반복하며 마지막 구간을 남은 길이로 자른다.
+  function timerPlan(plannedSec, settings) {
+    const st = Object.assign({}, DEFAULT_SETTINGS, settings || {});
+    const interval = Math.max(1, Math.min(600, parseInt(st.focusMinutes, 10) || 25)) * 60;
+    const rest = Math.max(1, Math.min(600, parseInt(st.breakMinutes, 10) || 5)) * 60;
+    let left = Math.max(0, Math.min(36000, plannedSec || 0));
+    const segments = [];
+    let totalSec = 0;
+    while (left > 0) {
+      const duration = st.includeBreaks ? Math.min(left, interval) : left;
+      segments.push({ kind: 'focus', start: totalSec, end: totalSec + duration });
+      totalSec += duration;
+      left -= duration;
+      if (left > 0 && st.includeBreaks) {
+        const breakDuration = Math.min(left, rest);
+        segments.push({ kind: 'break', start: totalSec, end: totalSec + breakDuration });
+        totalSec += breakDuration;
+        left -= breakDuration;
+      }
+    }
+    return { segments, totalSec };
+  }
+
+  function focusedAt(plan, elapsed) {
+    return plan.segments.reduce(function (sum, part) {
+      return sum + (part.kind === 'focus' ? Math.max(0, Math.min(part.end, elapsed) - part.start) : 0);
+    }, 0);
   }
 
   // -- 집계 ----------------------------------------------------
@@ -375,8 +418,11 @@
     xpForLevel: xpForLevel,
     levelOf: levelOf,
     sessionXp: sessionXp,
+    sessionReward: sessionReward,
     isSessionWorthRecording: isSessionWorthRecording,
     extendPlan: extendPlan,
+    timerPlan: timerPlan,
+    focusedAt: focusedAt,
     focusedSecByDay: focusedSecByDay,
     completedCountOn: completedCountOn,
     computeStreak: computeStreak,

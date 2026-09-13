@@ -6,7 +6,7 @@
  * Date.now() 와 비교해 남은 시간을 구한다. 그래서 절전에서 깨어나도,
  * 창을 최소화해 두어도 시간이 밀리지 않는다.
  *
- * 집중한 시간 = 계획 시간 - 남은 시간.
+ * 집중 기록은 전체 경과 시간에서 휴식 구간을 제외한다.
  * 일시정지 중에는 남은 시간이 줄지 않으니 따로 누적할 필요가 없다.
  */
 (function () {
@@ -76,6 +76,8 @@
     endsAt: 0,
     remainSec: 0,
     plannedSec: 0,
+    plan: null,
+    cycleSettings: null,
     questId: null,
     title: '',
     startedAt: 0,
@@ -153,7 +155,7 @@
     wire();
     renderAll();
 
-    api.onElapsed(() => finalize(true));
+    api.onElapsed(() => { if (run.mode === 'live' && remainingSec() <= 0) finalize(true); });
     api.onResync(() => { if (run.mode === 'live') tick(); });
 
     // 업데이트 상태. WebView2 호스트(src/host.js)에는 이 창구가 없으므로
@@ -204,11 +206,14 @@
 
     const quest = findQuest(pickedQuestId);
     run.plannedSec = mins * 60;
-    run.remainSec = run.plannedSec;
+    run.cycleSettings = Object.assign({}, state.settings);
+    run.plan = G.timerPlan(run.plannedSec, run.cycleSettings);
+    run.remainSec = run.plan.totalSec;
     run.questId = quest ? quest.id : null;
     run.title = quest ? quest.title : '';
     run.startedAt = Date.now();
     run.finalized = false;
+    run.lastSegment = 0;
 
     stopAlarm();
     unlockAudio();
@@ -224,6 +229,7 @@
   }
 
   function hold() {
+    stopCue();
     run.remainSec = remainingSec();
     run.mode = 'held';
     api.disarmTimer();
@@ -242,6 +248,12 @@
   function tick() {
     if (run.mode !== 'live') return;
     if (remainingSec() <= 0) return finalize(true);
+    const elapsed = run.plan.totalSec - remainingSec();
+    const segment = run.plan.segments.findIndex(part => elapsed < part.end);
+    if (segment >= 0 && segment !== run.lastSegment) {
+      run.lastSegment = segment;
+      playCue(run.plan.segments[segment].kind === 'break' ? 'breakStartSound' : 'breakEndSound');
+    }
     paintClock();
   }
 
@@ -251,12 +263,15 @@
    */
   function finalize(completed) {
     if (run.finalized) return;
+    stopCue();
     run.finalized = true;
     stopTicking();
     api.disarmTimer();
 
     const remain = completed ? 0 : remainingSec();
-    const focusedSec = Math.max(0, Math.round(run.plannedSec - remain));
+    const elapsedSec = Math.max(0, Math.min(run.plan.totalSec, run.plan.totalSec - remain));
+    const focusedSec = Math.round(G.focusedAt(run.plan, elapsedSec));
+    const breakSec = Math.max(0, Math.round(elapsedSec) - focusedSec);
     run.remainSec = remain;
     run.mode = 'done';
 
@@ -270,7 +285,8 @@
 
     const quest = findQuest(run.questId);
     const isDaily = !!quest && quest.kind === 'daily';
-    const xp = G.sessionXp({ focusedSec, completed, isDaily });
+    const reward = G.sessionReward({ focusedSec, breakSec, completed, isDaily });
+    const xp = reward.totalXp;
 
     state.sessions.push({
       id: 's' + Date.now().toString(36),
@@ -278,6 +294,8 @@
       questTitle: run.title,
       plannedSec: run.plannedSec,
       focusedSec,
+      breakSec,
+      reward,
       completed,
       startedAt: run.startedAt,
       endedAt: Date.now(),
@@ -301,6 +319,10 @@
     if (completed) startAlarm();
     renderAll();
 
+    if (completed) {
+      showSettlement(reward, before, focusedSec, breakSec);
+      return;
+    }
     if (after > before) showSeal(after);
 
     if (isAlarmRinging()) {
@@ -315,6 +337,32 @@
     } else {
       say((completed ? '완주. ' : '여기까지 기록했습니다. ') + '경험치 +' + xp, true);
     }
+  }
+
+  function showSettlement(reward, before, focusedSec, breakSec) {
+    const level = G.levelOf(state.totalXp);
+    $('settlementTime').textContent = '집중 ' + G.formatDuration(focusedSec) + ' · 휴식 ' + G.formatDuration(breakSec);
+    $('settlementXp').textContent = '+' + reward.totalXp.toLocaleString('ko-KR');
+    const details = $('settlementDetails');
+    details.replaceChildren();
+    for (const [label, value] of [
+      ['집중 XP', reward.focusXp], ['휴식 XP · 0.5배', reward.breakXp],
+      ['50분 사이클 × ' + reward.cycles + ' · +' + reward.cyclePercent + '%', reward.cycleXp],
+      ['완주 보너스 · +20%', reward.completeXp],
+      ...(reward.dailyXp ? [['일일 퀘스트 보너스', reward.dailyXp]] : []),
+    ]) {
+      const term = document.createElement('dt'); term.textContent = label;
+      const amount = document.createElement('dd'); amount.textContent = '+' + value.toLocaleString('ko-KR') + ' XP';
+      details.append(term, amount);
+    }
+    $('settlementLevel').textContent = before < level.level ? 'Lv.' + before + ' → Lv.' + level.level : 'Lv.' + level.level;
+    $('settlementLevelNote').textContent = before < level.level ? '레벨이 올랐습니다!' : '경험치가 쌓였습니다';
+    $('settlementProgress').max = level.xpNeeded;
+    $('settlementProgress').value = level.xpInLevel;
+    $('settlementNext').textContent = level.xpInLevel + ' / ' + level.xpNeeded + ' XP · 다음 레벨까지 ' + (level.xpNeeded - level.xpInLevel) + ' XP';
+    el.toast.hidden = true;
+    $('settlementClose').textContent = isAlarmRinging() ? '확인 · 알림 끄기' : '확인';
+    $('settlement').showModal();
   }
 
   function badgeName(id) {
@@ -360,14 +408,16 @@
   }
 
   /** 세 음이 올라가는 차임 한 벌. */
-  function ring() {
+  function ring(kind = 'completionSound') {
     if (!ensureAudio()) return;
     try {
       const t0 = audioCtx.currentTime;
       // 껐던 master 를 되돌린다
       master.gain.cancelScheduledValues(t0);
       master.gain.setValueAtTime(1, t0);
-      [587.33, 783.99, 1046.5].forEach((freq, i) => {
+      const notes = kind === 'breakStartSound' ? [659.25, 523.25]
+        : kind === 'breakEndSound' ? [523.25, 783.99] : [587.33, 783.99, 1046.5];
+      notes.forEach((freq, i) => {
         const at = t0 + i * 0.16;
         blip(freq, at, 0.38);
         blip(freq * 2, at, 0.1); // 한 옥타브 위를 얇게 얹어 멀리서도 들리게
@@ -382,12 +432,19 @@
   function startAlarm() {
     stopAlarm();
     if (!ensureAudio()) return; // 소리를 꺼두었으면 울리지 않는다
-    ring();
-    alarmTimer = setInterval(ring, 1900);
+    alarmTimer = setTimeout(repeatAlarm, 0);
+  }
+
+  async function repeatAlarm() {
+    const epoch = alarmEpoch;
+    const duration = await playCue('completionSound');
+    if (alarmTimer !== null && epoch === alarmEpoch) alarmTimer = setTimeout(repeatAlarm, (duration + 0.7) * 1000);
   }
 
   function stopAlarm() {
-    if (alarmTimer) { clearInterval(alarmTimer); alarmTimer = null; }
+    alarmEpoch++;
+    if (alarmTimer !== null) { clearTimeout(alarmTimer); alarmTimer = null; }
+    stopCue();
     // 울리고 있던 음까지 즉시 끊는다
     if (audioCtx && master) {
       try {
@@ -400,6 +457,113 @@
   }
 
   const isAlarmRinging = () => alarmTimer !== null;
+
+  let cueGeneration = 0;
+  let alarmEpoch = 0;
+  let cueSource = null;
+  const soundBuffers = new Map();
+  const soundDefs = [
+    ['completionSound', '완료음', '타이머 완주 시 · 확인할 때까지 반복'],
+    ['breakStartSound', '휴식음', '휴식 시작 시 한 번'],
+    ['breakEndSound', '휴식 종료음', '다시 집중할 때 한 번'],
+  ];
+
+  function stopCue() {
+    cueGeneration++;
+    if (cueSource) { try { cueSource.stop(); } catch (_) {} cueSource = null; }
+    if (audioCtx && master) {
+      master.gain.cancelScheduledValues(audioCtx.currentTime);
+      master.gain.setValueAtTime(0, audioCtx.currentTime);
+    }
+  }
+
+  async function decodeSound(data) {
+    const raw = atob(data.slice(data.indexOf(',') + 1));
+    const bytes = Uint8Array.from(raw, char => char.charCodeAt(0));
+    // Decoding does not play audio, including while the sound switch is off.
+    const decoder = new OfflineAudioContext(1, 1, 44100);
+    return decoder.decodeAudioData(bytes.buffer);
+  }
+
+  async function playCue(kind) {
+    stopCue();
+    if (!ensureAudio()) return 0;
+    const generation = cueGeneration;
+    const chosen = state.settings[kind];
+    if (chosen?.data) {
+      try {
+        let buffer = soundBuffers.get(kind);
+        if (!buffer || buffer.data !== chosen.data) {
+          buffer = { data: chosen.data, audio: await decodeSound(chosen.data) };
+          soundBuffers.set(kind, buffer);
+        }
+        if (generation !== cueGeneration || !state.settings.sound) return 0;
+        master.gain.setValueAtTime(1, audioCtx.currentTime);
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer.audio;
+        source.connect(master);
+        cueSource = source;
+        source.onended = () => { if (cueSource === source) cueSource = null; };
+        source.start();
+        return buffer.audio.duration;
+      } catch (_) { /* A damaged saved sound falls back to the default cue. */ }
+    }
+    if (generation === cueGeneration) ring(kind);
+    return kind === 'completionSound' ? 1.2 : 0.9;
+  }
+
+  function buildSoundPrefs() {
+    const container = $('soundPresets');
+    for (const [key, label, hint] of soundDefs) {
+      const row = document.createElement('section'); row.className = 'sound-preset';
+      const heading = document.createElement('strong'); heading.textContent = label;
+      const description = document.createElement('small'); description.textContent = hint;
+      const filename = document.createElement('p'); filename.id = key + 'Name'; filename.className = 'sound-name';
+      const picker = document.createElement('input'); picker.type = 'file'; picker.accept = 'audio/*,.mp3,.wav,.ogg,.m4a,.flac'; picker.hidden = true; picker.id = key + 'File';
+      const actions = document.createElement('div'); actions.className = 'sound-actions';
+      const button = (text, action) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-quiet';
+        b.textContent = text; b.setAttribute('aria-label', label + ' ' + text); b.addEventListener('click', action); actions.append(b); return b;
+      };
+      const choose = button('파일 선택', () => picker.click());
+      button('미리듣기', () => {
+        if (!state.settings.sound) return say('알림 소리를 켜면 미리 들을 수 있습니다.');
+        stopAlarm(); playCue(key);
+      });
+      button('중지', stopAlarm);
+      const reset = button('기본음', () => {
+        stopAlarm(); state.settings[key] = null; soundBuffers.delete(key); picker.value = ''; save(); paintSoundPrefs();
+      });
+      reset.id = key + 'Reset';
+      picker.addEventListener('change', async () => {
+        const file = picker.files[0]; if (!file) return;
+        choose.disabled = reset.disabled = true;
+        filename.textContent = '오디오 확인 중…';
+        try {
+          if (file.size > 5 * 1024 * 1024) throw new Error('5MB 이하의 파일을 선택해 주세요.');
+          const data = await new Promise((resolve, reject) => {
+            const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file);
+          });
+          const audio = await decodeSound(data).catch(() => { throw new Error('재생할 수 없는 파일입니다. MP3 또는 WAV 파일을 선택해 주세요.'); });
+          if (audio.duration > 30 || audio.duration <= 0) throw new Error('30초 이하의 오디오를 선택해 주세요.');
+          stopAlarm();
+          state.settings[key] = { name: file.name, data };
+          soundBuffers.set(key, { data, audio });
+          save();
+        } catch (error) { say(error.message || '파일을 읽지 못했습니다.'); }
+        finally { choose.disabled = false; picker.value = ''; paintSoundPrefs(); }
+      });
+      row.append(heading, description, filename, actions, picker); container.append(row);
+    }
+    paintSoundPrefs();
+  }
+
+  function paintSoundPrefs() {
+    for (const [key] of soundDefs) {
+      $(key + 'Name').textContent = state.settings[key]?.name || '기본 알림음';
+      $(key + 'Reset').disabled = !state.settings[key];
+    }
+  }
 
   // ── 그리기: 제목줄 ──────────────────────────────────────
   function renderRank() {
@@ -521,6 +685,8 @@
 
     el.btnGo.hidden = live;
     el.btnGo.textContent = held ? '이어서' : '시작';
+    $('includeBreaks').checked = !!state.settings.includeBreaks;
+    $('breakToggle').hidden = live || held;
     el.btnHold.hidden = !live;
     el.btnStop.hidden = !(live || held);
     el.dial.hidden = live || held;
@@ -567,14 +733,17 @@
     if (next.addedSec <= 0) {
       return say('한 구간은 ' + G.MAX_PLAN_MINUTES + '분까지입니다.');
     }
+    const oldTotal = run.plan.totalSec;
     run.plannedSec = next.plannedSec;
+    run.plan = G.timerPlan(run.plannedSec, run.cycleSettings);
+    const addedTotal = run.plan.totalSec - oldTotal;
 
     if (run.mode === 'live') {
-      run.endsAt += next.addedSec * 1000;
+      run.endsAt += addedTotal * 1000;
       // 메인 프로세스에 걸어둔 알림 시각도 다시 맞춘다
       api.armTimer(run.endsAt, run.title);
     } else {
-      run.remainSec += next.addedSec;
+      run.remainSec += addedTotal;
     }
 
     renderField();
@@ -587,8 +756,7 @@
 
   function paintClockDigits(text, remain) {
     if (text === lastClockText) return;
-    const animate = (run.mode === 'live' || run.mode === 'done')
-      && lastClockRemain !== null && lastClockRemain - remain === 1
+    const animate = lastClockRemain !== null && text.length === lastClockText.length
       && !document.hidden && !el.views.field.hidden && !clockReducedMotion.matches;
     el.clock.setAttribute('aria-label', '남은 시간 ' + text);
     // 1시간을 넘기면 H:MM:SS 일곱 글자가 되어 링 밖으로 넘친다. 한 단계 줄인다.
@@ -638,12 +806,65 @@
     lastClockRemain = remain;
   }
 
+  const textTransitions = new WeakMap();
+  function paintSoftText(element, text, key) {
+    const previous = element.textContent;
+    const changed = element.dataset.transitionKey !== key;
+    element.dataset.transitionKey = key;
+    if (previous === text) return;
+    if (!changed && element.firstElementChild) {
+      element.firstElementChild.textContent = text;
+      return;
+    }
+    clearTimeout(textTransitions.get(element));
+    element.classList.remove('text-transition');
+    element.textContent = '';
+    const value = document.createElement('span');
+    value.textContent = text;
+    element.append(value);
+    if (previous && changed && !clockReducedMotion.matches) {
+      element.dataset.previous = previous;
+      void element.offsetWidth;
+      element.classList.add('text-transition');
+      textTransitions.set(element, setTimeout(() => {
+        element.classList.remove('text-transition');
+        delete element.dataset.previous;
+      }, 380));
+    }
+  }
+
   function paintClock() {
     const idle = run.mode === 'idle';
-    const planned = idle
-      ? clamp(num(el.planMinutes.value, state.settings.defaultMinutes), 1, G.MAX_PLAN_MINUTES) * 60
-      : run.plannedSec;
+    const plan = idle || !run.plan
+      ? G.timerPlan(clamp(num(el.planMinutes.value, state.settings.defaultMinutes), 1, G.MAX_PLAN_MINUTES) * 60, state.settings)
+      : run.plan;
+    const planned = plan.totalSec;
     const remain = idle ? planned : remainingSec();
+    const elapsed = planned - remain;
+    const part = plan.segments.find(s => elapsed < s.end);
+    const hasBreaks = plan.segments.some(s => s.kind === 'break');
+    const resting = part && part.kind === 'break';
+    const caption = hasBreaks
+      ? (idle ? '휴식 포함 · 남은 시간' : run.mode === 'done' ? '휴식 포함 · 남은 시간' : (resting ? '휴식' : '집중') + ' ' + G.formatClock(part ? part.end - elapsed : 0) + ' · 전체 남은 시간')
+      : '남은 시간';
+    paintSoftText($('clockCaption'), caption, [run.mode, hasBreaks, !!resting].join(':'));
+    el.ink.classList.toggle('is-resting', !!resting && !idle && run.mode !== 'done');
+    if (run.mode === 'live') el.fieldState.textContent = (resting ? '휴식하는 중' : '집중하는 중') + ' (전체 ' + G.formatDuration(run.plannedSec) + ')';
+    el.ink.classList.toggle('has-breaks', hasBreaks);
+    if (hasBreaks) {
+      const colors = { focus: 'var(--cheongja)', break: '#4cbb80' };
+      const stops = [];
+      plan.segments.forEach((s, i) => {
+        const previous = plan.segments[i - 1];
+        const next = plan.segments[i + 1];
+        const fadeIn = previous ? Math.min(3, (s.end - s.start) / planned * 90, (previous.end - previous.start) / planned * 90) : 0;
+        const fadeOut = next ? Math.min(3, (s.end - s.start) / planned * 90, (next.end - next.start) / planned * 90) : 0;
+        stops.push(colors[s.kind] + ' ' + (s.start / planned * 360 + fadeIn) + 'deg', colors[s.kind] + ' ' + (s.end / planned * 360 - fadeOut) + 'deg');
+      });
+      const background = 'conic-gradient(' + stops.join(',') + ')';
+      if ($('breakRingColor').style.background !== background) $('breakRingColor').style.background = background;
+      $('breakRingColor').style.setProperty('--elapsed-angle', (elapsed / planned * 360) + 'deg');
+    }
 
     paintClockDigits(G.formatClock(remain), Math.max(0, Math.ceil(remain)));
     const gone = planned > 0 ? clamp(1 - remain / planned, 0, 1) : 0;
@@ -929,6 +1150,7 @@
       const len = document.createElement('span');
       len.className = 'h-len';
       len.textContent = G.formatDuration(s.focusedSec);
+      if (s.breakSec) len.title = '집중 ' + G.formatDuration(s.focusedSec) + ' · 휴식 ' + G.formatDuration(s.breakSec) + ' (XP 0.5배)';
 
       const mark = document.createElement('span');
       mark.className = 'h-mark' + (s.completed ? ' is-done' : '');
@@ -1011,12 +1233,14 @@
     el.prefBoundary.value = state.settings.dayBoundaryHour;
     el.prefStreakMin.value = state.settings.streakMinMinutes;
     el.prefDefaultMin.value = state.settings.defaultMinutes;
+    $('prefFocusMin').value = state.settings.focusMinutes;
+    $('prefBreakMin').value = state.settings.breakMinutes;
     el.prefSound.checked = !!state.settings.sound;
     el.prefOnTop.checked = !!state.settings.alwaysOnTop;
     el.prefAutoUpdate.checked = state.settings.autoUpdate !== false;
     el.prefsNote.textContent =
-      '기록은 이 컴퓨터에만 저장됩니다. 집중 1분에 경험치 2점, 완주하면 20% 더, '
-      + '일일 퀘스트를 완주하면 30점이 더 붙습니다.';
+      '기록은 이 컴퓨터에만 저장됩니다. 집중 1분에 경험치 2점, 휴식 1분에 1점, 완주하면 20% 더, '
+      + '집중·휴식 합계 50분마다 기본 XP의 10%가 추가됩니다. 일일 퀘스트를 완주하면 30점이 더 붙습니다.';
   }
 
   function renderAll() {
@@ -1176,6 +1400,21 @@
 
   // ── 묶기 ───────────────────────────────────────────────
   function wire() {
+    buildSoundPrefs();
+    $('settlementClose').addEventListener('click', () => $('settlement').close());
+    $('settlement').addEventListener('close', () => { stopAlarm(); el.btnGo.focus(); });
+    $('includeBreaks').addEventListener('change', () => {
+      state.settings.includeBreaks = $('includeBreaks').checked;
+      if (run.mode === 'done') run.mode = 'idle';
+      save(); renderField();
+    });
+    [['prefFocusMin', 'focusMinutes', 25], ['prefBreakMin', 'breakMinutes', 5]].forEach(([id, key, fallback]) => {
+      $(id).addEventListener('change', () => {
+        state.settings[key] = clamp(num($(id).value, fallback), 1, G.MAX_PLAN_MINUTES);
+        $(id).value = state.settings[key];
+        save(); renderField();
+      });
+    });
     $('panelToggle').addEventListener('click', () => setPanelCollapsed(!panelCollapsed));
     el.btnGo.addEventListener('click', () => (run.mode === 'held' ? resume() : start()));
     el.btnHold.addEventListener('click', hold);
@@ -1287,6 +1526,7 @@
 
     // 스페이스로 시작/멈춤, 울리는 알림은 Esc 로도 끈다
     document.addEventListener('keydown', (e) => {
+      if ($('settlement').open) return;
       // 알림이 울리는 중이면 끄는 것이 가장 급한 일이다
       if (isAlarmRinging() && (e.key === 'Escape' || e.code === 'Space')) {
         const inField = e.target

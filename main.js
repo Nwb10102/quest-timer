@@ -144,7 +144,7 @@ function fire() {
     const n = new Notification({
       title: title ? title + ' 완주' : '한 구간 완주',
       body: '기록에 한 획을 더했습니다.',
-      silent: false,
+      silent: true, // Renderer plays the user's chosen completion sound.
     });
     n.on('click', () => {
       if (win && !win.isDestroyed()) {
@@ -344,4 +344,3 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 module.exports = { createWindow };
-
