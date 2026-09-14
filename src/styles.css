@@ -1126,6 +1126,10 @@ body.is-running .content::before, body.is-away .content::before { opacity: 0; }
 .sound-actions .btn:disabled { opacity: .4; cursor: default; }
 .clock-caption { color: var(--meok-mute); font-size: 12px; transition: color 480ms ease; }
 @property --elapsed-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.break-glow { position: absolute; inset: -6%; border-radius: 50%; pointer-events: none; opacity: 0; filter: blur(12px); transition: opacity 480ms ease; mask-image: radial-gradient(farthest-side, transparent 25%, rgba(0,0,0,.35) 55%, black 78%, transparent 100%); }
+.break-glow > div { width: 100%; height: 100%; border-radius: 50%; transform: scaleX(-1); mask-image: conic-gradient(transparent var(--elapsed-angle), black 0deg); transition: --elapsed-angle 250ms linear; }
+.timer-ring.has-breaks .break-glow { opacity: .2; }
+.timer-ring.has-breaks.is-held .break-glow { opacity: .11; }
 .break-ring { position: absolute; inset: 2.65625%; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 480ms ease; mask-image: radial-gradient(farthest-side, transparent 95.05%, black 95.38%, black 99.67%, transparent 100%); }
 /* conic-gradient 은 시계방향으로만 돌아서, 좌우로 뒤집어 반시계방향으로 줄어들게 한다. */
 .break-ring > div { width: 100%; height: 100%; border-radius: 50%; transform: scaleX(-1); mask-image: conic-gradient(transparent var(--elapsed-angle), black 0deg); transition: --elapsed-angle 250ms linear; }
@@ -1146,7 +1150,7 @@ body.is-running .content::before, body.is-away .content::before { opacity: 0; }
 @keyframes text-fade-out { to { opacity: 0; transform: translateY(3px); } }
 @keyframes text-fade-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) {
-  .break-ring, .break-ring > div, .ring-fill, .break-toggle-button, .clock-caption { transition: none; }
+  .break-glow, .break-glow > div, .break-ring, .break-ring > div, .ring-fill, .break-toggle-button, .clock-caption { transition: none; }
   .text-transition::before { display: none; }
   .text-transition > span { animation: none; }
 }

@@ -842,6 +842,7 @@
     if (hasBreaks) {
       const colors = { focus: 'var(--cheongja)', break: '#4cbb80' };
       const stops = [];
+      const glowStops = [];
       plan.segments.forEach((s, i) => {
         const previous = plan.segments[i - 1];
         const next = plan.segments[i + 1];
@@ -850,10 +851,15 @@
         const fadeIn = previous ? Math.min(blend, (s.end - s.start) / planned * 90, (previous.end - previous.start) / planned * 90) : 0;
         const fadeOut = next ? Math.min(blend, (s.end - s.start) / planned * 90, (next.end - next.start) / planned * 90) : 0;
         stops.push(colors[s.kind] + ' ' + (s.start / planned * 360 + fadeIn) + 'deg', colors[s.kind] + ' ' + (s.end / planned * 360 - fadeOut) + 'deg');
+        const glowColor = s.kind === 'break' ? colors.break : 'transparent';
+        glowStops.push(glowColor + ' ' + (s.start / planned * 360 + fadeIn) + 'deg', glowColor + ' ' + (s.end / planned * 360 - fadeOut) + 'deg');
       });
       const background = 'conic-gradient(' + stops.join(',') + ')';
       if ($('breakRingColor').style.background !== background) $('breakRingColor').style.background = background;
       $('breakRingColor').style.setProperty('--elapsed-angle', (elapsed / planned * 360) + 'deg');
+      const glowBackground = 'conic-gradient(' + glowStops.join(',') + ')';
+      if ($('breakGlowColor').style.background !== glowBackground) $('breakGlowColor').style.background = glowBackground;
+      $('breakGlowColor').style.setProperty('--elapsed-angle', (elapsed / planned * 360) + 'deg');
     }
 
     paintClockDigits(G.formatClock(remain), Math.max(0, Math.ceil(remain)));
