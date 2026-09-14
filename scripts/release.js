@@ -24,6 +24,9 @@ if (!fs.existsSync(path.join(ROOT, notes)) || !fs.readFileSync(path.join(ROOT, n
   process.exit(1);
 }
 
+// 뒤에 붙인 인자는 electron-builder 에 그대로 넘긴다. dist 가 다른 프로그램에
+// 잡혀 지워지지 않을 때 `npm run release -- -c.directories.output=dist-release` 처럼 쓴다.
 const result = spawnSync('npx', ['electron-builder', '--publish', 'always',
-  '-c.releaseInfo.releaseNotesFile=' + notes], { cwd: ROOT, stdio: 'inherit', shell: true });
+  '-c.releaseInfo.releaseNotesFile=' + notes, ...process.argv.slice(2)],
+{ cwd: ROOT, stdio: 'inherit', shell: true });
 process.exit(result.status == null ? 1 : result.status);
