@@ -1,0 +1,113 @@
+@import url("fonts.css");
+
+/*
+ * widget.css - 배경 위젯.
+ *
+ * 앱 창이 뒤로 물러났을 때 화면 구석에 남는 한 줄짜리 알림판.
+ * 창 자체는 투명하고, 그 위에 이 카드 하나만 떠 있다. 바깥 여백은
+ * 그림자가 잘리지 않게 비워둔 자리다.
+ */
+
+:root {
+  color-scheme: dark;
+  --jjok-deep:  #1B1D21;
+  --hanji:      #EDF0F7;
+  --meok-mute:  #A0ABC2;
+  --cheongja:   #A1B5E5;
+  --swi:        #4CBB80;  /* 휴식 */
+  --han: "Inter", "Pretendard", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: transparent;
+}
+
+body {
+  display: flex;
+  padding: 10px;
+  color: var(--hanji);
+  font: 14px/1.5 var(--han);
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 18px 0 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 20px;
+  background: var(--jjok-deep);
+  box-shadow: 0 12px 34px rgba(0,0,0,.5);
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.card:hover { background: #212429; border-color: rgba(255,255,255,.14); }
+.card:focus-visible { outline: 2px solid var(--cheongja); outline-offset: -3px; }
+
+/* 왼쪽 표식: 앱 아이콘과 같은 두루마리에, 남은 시간이 도는 링을 둘렀다. */
+.mark { position: relative; flex: none; width: 56px; height: 56px; }
+.mark-ring { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+.mark-track, .mark-fill { fill: none; stroke-width: 3.6; }
+.mark-track { stroke: rgba(160,171,194,.16); }
+.mark-fill {
+  stroke: var(--cheongja);
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 250ms linear, stroke 480ms ease;
+}
+.mark-glyph {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 25px;
+  height: 25px;
+  color: #C3D0EF;
+  transition: color 480ms ease;
+}
+body.is-resting .mark-fill { stroke: var(--swi); }
+body.is-resting .mark-glyph { color: #A8DCC0; }
+body.is-held .mark-fill { stroke: var(--meok-mute); }
+body.is-held .mark-glyph { color: var(--meok-mute); }
+
+.lines { min-width: 0; flex: 1; }
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.title.is-blank { font-weight: 400; color: var(--meok-mute); }
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0 0;
+  color: var(--meok-mute);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.state { flex: none; }
+.clock { color: var(--hanji); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+body.is-held .clock { color: var(--meok-mute); }
+.turn { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.turn[hidden] { display: none; }
+.bar { flex: none; width: 1px; height: 11px; background: rgba(160,171,194,.35); }
+body.is-resting .state { color: #80D5A5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .mark-fill, .mark-glyph { transition: none; }
+}

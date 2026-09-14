@@ -13,6 +13,7 @@
   'use strict';
 
   const G = window.Game;
+  const N = window.Notes;
   const api = window.api;
 
   const $ = (id) => document.getElementById(id);
@@ -39,7 +40,7 @@
     badges: $('badges'), badgeCount: $('badgeCount'),
     prefBoundary: $('prefBoundary'), prefStreakMin: $('prefStreakMin'),
     prefDefaultMin: $('prefDefaultMin'), prefSound: $('prefSound'), prefOnTop: $('prefOnTop'),
-    prefAutoUpdate: $('prefAutoUpdate'),
+    prefWidget: $('prefWidget'), prefAutoUpdate: $('prefAutoUpdate'),
     updVersion: $('updVersion'), updStatus: $('updStatus'),
     updBar: $('updBar'), updFill: $('updFill'),
     btnUpdCheck: $('btnUpdCheck'), btnUpdGet: $('btnUpdGet'), btnUpdInstall: $('btnUpdInstall'),
@@ -175,6 +176,7 @@
       upd = { status: 'none', version: null, percent: 0, error: null };
     }
     paintUpdate();
+    showNotes();
 
     // 스크린샷 스크립트에 "다 그렸다"고 알린다
     requestAnimationFrame(() => requestAnimationFrame(() => api.signalReady()));
@@ -351,6 +353,71 @@
     el.toast.hidden = true;
     $('settlementClose').textContent = isAlarmRinging() ? '확인 · 알림 끄기' : '확인';
     $('settlement').showModal();
+  }
+
+  /**
+   * 새 버전으로 올라온 뒤 처음 켰을 때 무엇이 바뀌었는지 보여준다.
+   * 띄울지는 메인이 정한다. 여기로 오는 것은 아직 확인하지 않은 소식뿐이고,
+   * 창을 닫으면 확인한 것으로 적혀 다음 업데이트 전까지 다시 오지 않는다.
+   */
+  async function showNotes() {
+    if (typeof api.getNotes !== 'function') return;
+    let news = null;
+    try { news = await api.getNotes(); } catch (_) { return; }
+    if (!news || !news.notes || !news.notes.length) return;
+
+    // 여러 판을 건너뛰어 올라왔으면 판마다 머리말을 붙여 새것부터 늘어놓는다
+    const several = news.notes.length > 1;
+    const oldest = news.notes[news.notes.length - 1].version;
+    // 조사는 받침에 따라 갈리므로(1.3.5로 / 1.3.6으로) 받침을 타지 않는 말만 쓴다
+    $('notesTitle').textContent = several
+      ? 'v' + oldest + '부터 v' + news.version + '까지 바뀐 것'
+      : 'v' + news.version + '에서 바뀐 것';
+    const body = $('notesBody');
+    body.replaceChildren();
+    for (const note of news.notes) {
+      const section = document.createElement('section');
+      section.className = 'notes-release';
+      if (several) {
+        const version = document.createElement('h3');
+        version.className = 'notes-version';
+        version.textContent = 'v' + note.version;
+        section.append(version);
+      }
+      for (const block of N.noteBlocks(note.body)) section.append(noteBlock(block));
+      body.append(section);
+    }
+
+    // 막 끝낸 구간의 정산 창이 떠 있으면 그것부터 보고 나서 띄운다
+    if ($('settlement').open) {
+      $('settlement').addEventListener('close', () => $('notes').showModal(), { once: true });
+    } else {
+      $('notes').showModal();
+    }
+  }
+
+  /** 릴리스 본문 한 덩어리를 요소로. 글은 모두 textContent 로만 넣는다. */
+  function noteBlock(block) {
+    const fill = (node, spans) => {
+      for (const span of spans) {
+        if (!span.strong && !span.code) { node.append(span.text); continue; }
+        const mark = document.createElement(span.strong ? 'strong' : 'code');
+        mark.textContent = span.text;
+        node.append(mark);
+      }
+      return node;
+    };
+    if (block.type === 'heading') {
+      const heading = document.createElement('h4');
+      heading.className = 'notes-heading';
+      return fill(heading, block.spans);
+    }
+    if (block.type === 'list') {
+      const list = document.createElement('ul');
+      for (const item of block.items) list.append(fill(document.createElement('li'), item));
+      return list;
+    }
+    return fill(document.createElement('p'), block.spans);
   }
 
   function badgeName(id) {
@@ -690,6 +757,27 @@
     paintClock();
     paintChips();
     renderToday();
+    pushWidget();
+  }
+
+  /**
+   * 배경 위젯에 지금 장면을 넘긴다.
+   * 초를 세는 일은 위젯이 endsAt 을 보고 스스로 한다. 여기서는 무엇이
+   * 바뀌었을 때만 - 곧 화면을 다시 그릴 때만 - 한 장면씩 건네준다.
+   */
+  function pushWidget() {
+    if (typeof api.pushWidget !== 'function') return;
+    const live = run.mode === 'live';
+    const showing = live || run.mode === 'held';
+    api.pushWidget({
+      enabled: state.settings.widget !== false,
+      mode: run.mode,
+      title: showing ? run.title : '',
+      endsAt: live ? run.endsAt : 0,
+      remainSec: showing ? remainingSec() : 0,
+      totalSec: showing && run.plan ? run.plan.totalSec : 0,
+      segments: showing && run.plan ? run.plan.segments : [],
+    });
   }
 
   /** 지금 고른 길이와 같은 칩에 표시를 남긴다. */
@@ -829,7 +917,7 @@
     const planned = plan.totalSec;
     const remain = idle ? planned : remainingSec();
     const elapsed = planned - remain;
-    const part = plan.segments.find(s => elapsed < s.end);
+    const part = G.segmentAt(plan, elapsed);
     const hasBreaks = plan.segments.some(s => s.kind === 'break');
     const resting = part && part.kind === 'break';
     const caption = hasBreaks
@@ -1233,6 +1321,7 @@
     $('prefBreakMin').value = state.settings.breakMinutes;
     el.prefSound.checked = !!state.settings.sound;
     el.prefOnTop.checked = !!state.settings.alwaysOnTop;
+    el.prefWidget.checked = state.settings.widget !== false;
     el.prefAutoUpdate.checked = state.settings.autoUpdate !== false;
     el.prefsNote.textContent =
       '기록은 이 컴퓨터에만 저장됩니다. 집중 1분에 경험치 2점, 휴식 1분에 1점, 완주하면 20% 더, '
@@ -1398,6 +1487,9 @@
   function wire() {
     buildSoundPrefs();
     $('settlementClose').addEventListener('click', () => $('settlement').close());
+    $('notesClose').addEventListener('click', () => $('notes').close());
+    // Esc 로 닫아도 확인한 것으로 친다
+    $('notes').addEventListener('close', () => api.markNotesSeen());
     $('settlement').addEventListener('close', () => { stopAlarm(); el.btnGo.focus(); });
     $('includeBreaks').addEventListener('change', () => {
       state.settings.includeBreaks = $('includeBreaks').checked;
@@ -1520,9 +1612,15 @@
       save();
     });
 
+    el.prefWidget.addEventListener('change', () => {
+      state.settings.widget = el.prefWidget.checked;
+      pushWidget();
+      save();
+    });
+
     // 스페이스로 시작/멈춤, 울리는 알림은 Esc 로도 끈다
     document.addEventListener('keydown', (e) => {
-      if ($('settlement').open) return;
+      if ($('settlement').open || $('notes').open) return;
       // 알림이 울리는 중이면 끄는 것이 가장 급한 일이다
       if (isAlarmRinging() && (e.key === 'Escape' || e.code === 'Space')) {
         const inField = e.target

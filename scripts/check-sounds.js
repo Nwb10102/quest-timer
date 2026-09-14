@@ -22,6 +22,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('window:always-on-top', () => false);
   ipcMain.handle('update:auto', () => false);
   ipcMain.handle('update:get', () => ({ update: { status: 'none' } }));
+  ipcMain.handle('notes:get', () => null);
   const win = new BrowserWindow({ width: 1000, height: 680, show: false,
     webPreferences: { preload: path.join(root, 'preload.js'), backgroundThrottling: false, offscreen: true } });
   const ready = new Promise(r => ipcMain.once('renderer:ready', r));

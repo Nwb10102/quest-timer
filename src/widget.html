@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:;">
+<title>Quest Timer 위젯</title>
+<link rel="stylesheet" href="widget.css">
+</head>
+<body>
+
+<!-- 앱이 뒤에 물러나 있을 때 남은 시간만 보여주는 작은 창.
+     끌어서 옮기고, 그냥 누르면 앱 창이 앞으로 나온다. -->
+<div class="card" id="card" role="button" tabindex="0" title="눌러서 Quest Timer 열기">
+  <div class="mark" id="mark">
+    <svg class="mark-ring" viewBox="0 0 56 56" aria-hidden="true">
+      <circle class="mark-track" cx="28" cy="28" r="25"/>
+      <circle class="mark-fill" id="markFill" cx="28" cy="28" r="25" pathLength="100"/>
+    </svg>
+    <!-- 앱 아이콘과 같은 두루마리 -->
+    <svg class="mark-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M19 17V5a2 2 0 0 0-2-2H4"/>
+      <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/>
+    </svg>
+  </div>
+
+  <div class="lines">
+    <p class="title" id="title">제목 없는 구간</p>
+    <p class="status">
+      <span class="state" id="state">집중하는 중</span>
+      <span class="clock" id="clock">00:00</span>
+      <span class="turn" id="turn" hidden><i class="bar" aria-hidden="true"></i><span id="turnText"></span></span>
+    </p>
+  </div>
+</div>
+
+<script src="game.js"></script>
+<script src="widget.js"></script>
+</body>
+</html>

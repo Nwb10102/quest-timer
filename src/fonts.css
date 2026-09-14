@@ -1,0 +1,36 @@
+/*
+ * fonts.css - 앱과 위젯이 함께 쓰는 글꼴.
+ *
+ * 라틴 글자와 숫자는 Inter, 한글은 Pretendard 가 맡는다. Inter 에는 한글이
+ * 아예 들어 있지 않아 한글만 자연스럽게 Pretendard 로 떨어진다. Pretendard 는
+ * Inter 를 바탕으로 그린 한글 글꼴이라 두 글자체가 한 줄에 섞여도 어긋나 보이지
+ * 않는다. 라이선스는 assets/font/Pretendard/OFL.txt 에 있다.
+ */
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/font/Inter/Inter_18pt-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/font/Inter/Inter_18pt-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("../assets/font/Pretendard/Pretendard-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("../assets/font/Pretendard/Pretendard-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}

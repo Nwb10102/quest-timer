@@ -121,6 +121,9 @@ app.whenReady().then(async () => {
   ipcMain.on('update:check', () => {});
   ipcMain.on('update:download', () => {});
   ipcMain.on('update:install', () => {});
+  ipcMain.handle('notes:get', () => null); // 업데이트 소식 창은 화면을 가린다
+  ipcMain.on('notes:seen', () => {});
+  ipcMain.on('widget:state', () => {});
 
   const win = new BrowserWindow({
     width: 1000,

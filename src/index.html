@@ -250,6 +250,16 @@
         </li>
         <li>
           <div class="pref-label">
+            <span>배경 위젯</span>
+            <small>다른 창을 쓰는 동안 화면 구석에 남은 시간을 띄웁니다. 끌어서 옮기고, 누르면 앱이 열립니다.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="prefWidget" checked>
+            <span class="switch-track" aria-hidden="true"></span>
+          </label>
+        </li>
+        <li>
+          <div class="pref-label">
             <span>새로운 버전이 나오면 알아서 받기</span>
             <small>받아두기만 하고, 설치는 눌러야 합니다. 끊김없는 공부를 느껴보세요!</small>
           </div>
@@ -300,6 +310,14 @@
   </div>
   <button type="button" class="btn btn-go" id="settlementClose" autofocus>확인</button>
 </dialog>
+
+<!-- 업데이트 소식. 새 버전으로 올라온 뒤 처음 켰을 때 한 번만 뜬다. -->
+<dialog class="settlement notes" id="notes" aria-labelledby="notesTitle">
+  <p class="settlement-kicker">업데이트 소식</p>
+  <h2 id="notesTitle">새 버전에서 바뀐 것</h2>
+  <div class="notes-body" id="notesBody"></div>
+  <button type="button" class="btn btn-go" id="notesClose" autofocus>확인</button>
+</dialog>
 <div class="seal-stage" id="sealStage" hidden>
   <div class="seal" id="seal">
     <span class="seal-level" id="sealLevel">2</span>
@@ -320,6 +338,7 @@
 
 <script src="host.js"></script>
 <script src="game.js"></script>
+<script src="notes.js"></script>
 <script src="renderer.js"></script>
 </body>
 </html>

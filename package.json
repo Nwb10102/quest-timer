@@ -12,7 +12,7 @@
     "icon": "electron scripts/make-icon.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "release": "electron-builder --publish always",
+    "release": "node scripts/release.js",
     "start:webview2": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1 -Run",
     "smoke:webview2": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1 -Smoke",
     "dist:webview2": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-webview2.ps1"
@@ -38,10 +38,12 @@
     "files": [
       "main.js",
       "preload.js",
+      "widget-preload.js",
       "windows-notifications.js",
       "src/**/*",
       "assets/image/MainIcon.png",
-      "assets/font/Inter/*.ttf"
+      "assets/font/Inter/*.ttf",
+      "assets/font/Pretendard/*"
     ],
     "extraResources": [
       { "from": "build/icon.ico", "to": "icon.ico" }

@@ -1,17 +1,4 @@
-@font-face {
-  font-family: "Inter";
-  src: url("../assets/font/Inter/Inter_18pt-Regular.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Inter";
-  src: url("../assets/font/Inter/Inter_18pt-Bold.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}
+@import url("fonts.css");
 
 /*
  * styles.css - 「원정 기록부」
@@ -33,7 +20,8 @@
   --cheongja:   #A1B5E5;  /* 푸른빛 - 진행 중 */
   --geum:       #D2A93B;  /* 금 - 레벨/XP 전용 */
 
-  --han: "Inter", "Malgun Gothic", "맑은 고딕", "NanumGothic", system-ui, sans-serif;
+  /* 라틴과 숫자는 Inter, 한글은 Pretendard. 자세한 사연은 fonts.css 에 있다. */
+  --han: "Inter", "Pretendard", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
   --num: var(--han);
 
   --strip-h: 44px;
@@ -1115,6 +1103,18 @@ body.is-running .content::before, body.is-away .content::before { opacity: 0; }
 .settlement-level progress::-webkit-progress-value { background: #a1b5e5; border-radius: 9px; }
 .settlement-level p { margin: 8px 0 0; }
 .settlement > button { width: 100%; border-radius: 999px; height: 42px; }
+/* 업데이트 소식: 정산 창과 같은 틀에 릴리스 본문을 싣는다 */
+.notes { width: min(480px, calc(100vw - 40px)); }
+.notes-body { margin: 18px 0 22px; padding-top: 16px; border-top: 1px solid #ffffff15; font-size: 13px; line-height: 1.65; color: #c9d0de; }
+.notes-release + .notes-release { margin-top: 20px; padding-top: 18px; border-top: 1px dashed #ffffff12; }
+.notes-version { margin: 0 0 8px; color: #a1b5e5; font-size: 12px; font-weight: 700; font-family: var(--num); }
+.notes-heading { margin: 14px 0 6px; color: #edf0f7; font-size: 13px; font-weight: 700; }
+.notes-body ul { margin: 0; padding-left: 18px; }
+.notes-body li + li { margin-top: 8px; }
+.notes-body li::marker { color: #a1b5e5; }
+.notes-body p { margin: 8px 0 0; }
+.notes-body strong { color: #edf0f7; font-weight: 700; }
+.notes-body code { padding: 1px 5px; border-radius: 5px; background: #ffffff10; font-size: 12px; }
 @keyframes settlement-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .settlement[open] { animation: none; } }
 .sound-presets { display: grid; gap: 20px; margin-top: 20px; }

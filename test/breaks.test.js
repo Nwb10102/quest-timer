@@ -45,6 +45,22 @@ test('50분은 집중 30분, 휴식 10분, 집중 10분으로 진행된다', () 
   }
 });
 
+test('위젯이 적는 다음 전환: 집중 중엔 휴식까지, 휴식 중엔 다시 집중까지', () => {
+  const plan = G.timerPlan(3000, settings); // 집중 25분, 휴식 5분, 집중 20분
+  assert.deepEqual(G.nextTurn(plan, 0), { kind: 'focus', nextKind: 'break', sec: 1500 });
+  assert.deepEqual(G.nextTurn(plan, 900), { kind: 'focus', nextKind: 'break', sec: 600 });
+  assert.deepEqual(G.nextTurn(plan, 1500), { kind: 'break', nextKind: 'focus', sec: 300 });
+  assert.deepEqual(G.nextTurn(plan, 1740), { kind: 'break', nextKind: 'focus', sec: 60 });
+  // 마지막 구간은 다음이 없다
+  assert.deepEqual(G.nextTurn(plan, 2000), { kind: 'focus', nextKind: null, sec: 1000 });
+  assert.equal(G.nextTurn(plan, 3000), null);
+  assert.equal(G.segmentAt(plan, 3000), null);
+  // 휴식 없이 돌 때는 한 구간뿐이다
+  const plain = G.timerPlan(1500, { ...settings, includeBreaks: false });
+  assert.deepEqual(G.nextTurn(plain, 100), { kind: 'focus', nextKind: null, sec: 1400 });
+  assert.equal(G.nextTurn({ segments: [] }, 0), null);
+});
+
 test('휴식 XP는 집중의 절반이며 기존 완주 보너스가 적용된다', () => {
   assert.equal(G.sessionXp({ focusedSec: 2400, breakSec: 600 }), 99);
   assert.equal(G.sessionXp({ focusedSec: 2400, breakSec: 600, completed: true }), 117);

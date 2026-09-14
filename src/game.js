@@ -29,6 +29,7 @@
     breakStartSound: null,
     breakEndSound: null,
     alwaysOnTop: false,
+    widget: true,          // 앱이 뒤로 물러나면 작은 위젯으로 남은 시간을 보여준다
     defaultMinutes: 25,
     includeBreaks: false,
     focusMinutes: 25,
@@ -180,6 +181,26 @@
       }
     }
     return { segments, totalSec };
+  }
+
+  /** elapsed 초가 걸쳐 있는 구간. 계획을 다 쓴 뒤라면 null. */
+  function segmentAt(plan, elapsed) {
+    const parts = (plan && plan.segments) || [];
+    return parts.find(function (part) { return elapsed < part.end; }) || null;
+  }
+
+  /**
+   * 지금 구간이 언제 끝나고 그다음은 무엇인지.
+   *   { kind: 'focus', nextKind: 'break', sec: 600 }  집중하다 10분 뒤 쉰다
+   * 다음이 없으면(마지막 구간) nextKind 는 null - 그때 sec 은 구간이 끝나는,
+   * 곧 계획 전체가 끝나는 시각까지다.
+   */
+  function nextTurn(plan, elapsed) {
+    const parts = (plan && plan.segments) || [];
+    const here = segmentAt(plan, elapsed);
+    if (!here) return null;
+    const after = parts[parts.indexOf(here) + 1] || null;
+    return { kind: here.kind, nextKind: after ? after.kind : null, sec: here.end - elapsed };
   }
 
   function focusedAt(plan, elapsed) {
@@ -422,6 +443,8 @@
     isSessionWorthRecording: isSessionWorthRecording,
     extendPlan: extendPlan,
     timerPlan: timerPlan,
+    segmentAt: segmentAt,
+    nextTurn: nextTurn,
     focusedAt: focusedAt,
     focusedSecByDay: focusedSecByDay,
     completedCountOn: completedCountOn,
