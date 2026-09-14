@@ -450,10 +450,9 @@ function sweepUpdateCache() {
 // 내용은 GitHub 릴리스 본문에서 가져온다. 사용자가 소식 창을 닫으면 그 버전을
 // 적어두고, 다음 업데이트 전까지는 다시 띄우지 않는다.
 const Notes = require('./src/notes');
-const RELEASES_URL = (() => {
-  const { owner, repo } = require('./package.json').build.publish[0];
-  return 'https://api.github.com/repos/' + owner + '/' + repo + '/releases?per_page=30';
-})();
+// package.json 의 build.publish 에서 읽으면 안 된다. electron-builder 는 묶을 때
+// package.json 에서 build 를 떼어내므로, 설치본에서는 켜지자마자 터진다 (1.4.0).
+const RELEASES_URL = 'https://api.github.com/repos/glglekdy/quest-timer/releases?per_page=30';
 
 function readSeenVersion() {
   try {
