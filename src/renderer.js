@@ -309,38 +309,26 @@
 
     const before = G.levelOf(state.totalXp).level;
     state.totalXp += xp;
-    const after = G.levelOf(state.totalXp).level;
 
     const unlocked = G.newlyUnlocked(state);
     const stamp = new Date().toISOString();
     unlocked.forEach((id) => { state.achievements[id] = stamp; });
 
+    // 중간에 그만뒀으면 남은 시간을 붙들고 있지 않고 처음 상태로 돌린다
+    if (!completed) {
+      run.mode = 'idle';
+      run.remainSec = clamp(num(el.planMinutes.value, state.settings.defaultMinutes), 1, G.MAX_PLAN_MINUTES) * 60;
+    }
+
     save();
     if (completed) startAlarm();
     renderAll();
-
-    if (completed) {
-      showSettlement(reward, before, focusedSec, breakSec);
-      return;
-    }
-    if (after > before) showSeal(after);
-
-    if (isAlarmRinging()) {
-      // 알림이 울리는 동안은 끄는 버튼이 어느 탭에서든 보여야 한다
-      say('완주. 경험치 +' + xp, true,
-        { label: '알림 끄기', run: stopAlarm, strong: true }, true);
-      el.toast.classList.add('is-alarm');
-    } else if (after > before) {
-      /* 낙관이 대신 알려준다 */
-    } else if (unlocked.length) {
-      say(badgeName(unlocked[0]) + ' 도전과제를 얻었습니다.');
-    } else {
-      say((completed ? '완주. ' : '여기까지 기록했습니다. ') + '경험치 +' + xp, true);
-    }
+    showSettlement(reward, before, focusedSec, breakSec, completed);
   }
 
-  function showSettlement(reward, before, focusedSec, breakSec) {
+  function showSettlement(reward, before, focusedSec, breakSec, completed) {
     const level = G.levelOf(state.totalXp);
+    $('settlementTitle').textContent = completed ? '구간을 완주했습니다' : '여기까지 기록했습니다';
     $('settlementTime').textContent = '집중 ' + G.formatDuration(focusedSec) + ' · 휴식 ' + G.formatDuration(breakSec);
     $('settlementXp').textContent = '+' + reward.totalXp.toLocaleString('ko-KR');
     const details = $('settlementDetails');
@@ -348,7 +336,7 @@
     for (const [label, value] of [
       ['집중 XP', reward.focusXp], ['휴식 XP · 0.5배', reward.breakXp],
       ['50분 사이클 × ' + reward.cycles + ' · +' + reward.cyclePercent + '%', reward.cycleXp],
-      ['완주 보너스 · +20%', reward.completeXp],
+      ...(completed ? [['완주 보너스 · +20%', reward.completeXp]] : []),
       ...(reward.dailyXp ? [['일일 퀘스트 보너스', reward.dailyXp]] : []),
     ]) {
       const term = document.createElement('dt'); term.textContent = label;
