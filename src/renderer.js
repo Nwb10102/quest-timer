@@ -845,8 +845,10 @@
       plan.segments.forEach((s, i) => {
         const previous = plan.segments[i - 1];
         const next = plan.segments[i + 1];
-        const fadeIn = previous ? Math.min(3, (s.end - s.start) / planned * 90, (previous.end - previous.start) / planned * 90) : 0;
-        const fadeOut = next ? Math.min(3, (s.end - s.start) / planned * 90, (next.end - next.start) / planned * 90) : 0;
+        // 색이 바뀌는 자리는 넉넉히 번지게 둔다. 짧은 구간에서는 구간 길이의 1/4까지만 번진다.
+        const blend = 10;
+        const fadeIn = previous ? Math.min(blend, (s.end - s.start) / planned * 90, (previous.end - previous.start) / planned * 90) : 0;
+        const fadeOut = next ? Math.min(blend, (s.end - s.start) / planned * 90, (next.end - next.start) / planned * 90) : 0;
         stops.push(colors[s.kind] + ' ' + (s.start / planned * 360 + fadeIn) + 'deg', colors[s.kind] + ' ' + (s.end / planned * 360 - fadeOut) + 'deg');
       });
       const background = 'conic-gradient(' + stops.join(',') + ')';
