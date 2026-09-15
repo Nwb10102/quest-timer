@@ -84,10 +84,33 @@ app.whenReady().then(async () => {
   assert.deepEqual([after.x, after.y], [before.x + 40, before.y - 40], '끈 만큼 따라온다');
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget.json'), 'utf8')),
-    { x: after.x, y: after.y }, '옮긴 자리를 적어둔다');
+    { x: after.x, y: after.y, scale: 1 }, '옮긴 자리를 적어둔다');
 
   fs.mkdirSync(path.join(ROOT, 'shots'), { recursive: true });
   fs.writeFileSync(path.join(ROOT, 'shots/widget.png'), (await widget.webContents.capturePage()).toPNG());
+
+  // 휠을 올리면 커진다. 오른쪽 아래에 놓인 위젯이니 오른쪽 아래 모서리는 제자리다.
+  const wheelUp = () => widget.webContents.sendInputEvent(
+    { type: 'mouseWheel', x: 60, y: 40, deltaX: 0, deltaY: 120, wheelTicksY: 1, canScroll: true });
+  wheelUp();
+  await wait(400);
+  const grown = widget.getBounds();
+  assert.deepEqual([grown.width, grown.height], [387, 97], '휠을 올리면 한 칸(10%) 커진다: ' + JSON.stringify(grown));
+  assert.deepEqual([grown.x + grown.width, grown.y + grown.height],
+    [after.x + after.width, after.y + after.height], '화면 가장자리 쪽 모서리는 그대로다');
+  assert.equal(widget.webContents.getZoomFactor().toFixed(2), '1.10', '글자와 링도 함께 커진다');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget.json'), 'utf8')).scale, 1.1,
+    '배율도 적어둔다');
+  // 카드가 창을 꼭 채운다 (확대된 뒤에도 글이 잘리거나 빈 테두리가 남지 않는다)
+  assert.equal(await readWidget(`(() => { const r = document.getElementById('card').getBoundingClientRect();
+    return Math.round(r.right) === innerWidth && Math.round(r.bottom) === innerHeight; })()`), true, '카드가 창을 채운다');
+
+  // 끝까지 줄여도 최소 배율(0.7)에서 멈춘다
+  for (let i = 0; i < 8; i++) ipcMain.emit('widget:resize', {}, -1);
+  const least = widget.getBounds();
+  assert.deepEqual([least.width, least.height], [246, 62], '0.7배에서 더 줄지 않는다: ' + JSON.stringify(least));
+  ipcMain.emit('widget:resize', {}, 3);
+  assert.equal(widget.getBounds().width, 352, '다시 키울 수 있다');
 
   // 앱으로 돌아오면 위젯은 물러난다
   win.restore();

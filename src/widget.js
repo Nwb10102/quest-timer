@@ -101,6 +101,20 @@
   el.card.addEventListener('pointerup', letGo);
   el.card.addEventListener('pointercancel', letGo);
 
+  // ── 휠로 크기 바꾸기 ─────────────────────────────────────
+  // 휠을 올리면 커지고 내리면 작아진다. 마우스 휠은 한 칸에 100 가량,
+  // 터치패드는 잘게 여러 번 오므로 모아서 한 칸만큼 찼을 때 한 번씩 넘긴다.
+  const WHEEL_NOTCH = 100;
+  let wheel = 0;
+  window.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    wheel += e.deltaY;
+    const steps = Math.trunc(wheel / WHEEL_NOTCH);
+    if (!steps) return;
+    wheel -= steps * WHEEL_NOTCH;
+    bridge.resize(-steps);
+  }, { passive: false });
+
   // 키보드로도 열 수 있게 (스크린 리더와 접근성 도구를 위해)
   el.card.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bridge.open(); }

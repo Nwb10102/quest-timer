@@ -18,4 +18,7 @@ contextBridge.exposeInMainWorld('widget', {
 
   /** 끌어서 옮기기. phase 는 start | move | end, 좌표는 화면 기준. */
   drag: (phase, x, y) => ipcRenderer.send('widget:drag', { phase, x, y }),
+
+  /** 크기 바꾸기. +1 이면 한 칸 크게, -1 이면 한 칸 작게. */
+  resize: (steps) => ipcRenderer.send('widget:resize', steps),
 });

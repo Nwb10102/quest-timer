@@ -4,8 +4,8 @@
  * widget.css - 배경 위젯.
  *
  * 앱 창이 뒤로 물러났을 때 화면 구석에 남는 한 줄짜리 알림판.
- * 창 자체는 투명하고, 그 위에 이 카드 하나만 떠 있다. 바깥 여백은
- * 그림자가 잘리지 않게 비워둔 자리다.
+ * 창 자체는 투명하고, 그 위에 이 카드 하나만 창에 꼭 맞게 떠 있다.
+ * 그림자는 두지 않는다. 뒤에 깔린 화면이 흐려 보여 거슬린다.
  */
 
 :root {
@@ -28,7 +28,6 @@ html, body {
 
 body {
   display: flex;
-  padding: 10px;
   color: var(--hanji);
   font: 14px/1.5 var(--han);
   overflow: hidden;
@@ -47,7 +46,6 @@ body {
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 20px;
   background: var(--jjok-deep);
-  box-shadow: 0 12px 34px rgba(0,0,0,.5);
   transition: background-color 180ms ease, border-color 180ms ease;
 }
 .card:hover { background: #212429; border-color: rgba(255,255,255,.14); }

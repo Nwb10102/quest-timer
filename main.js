@@ -152,27 +152,43 @@ function createWindow() {
 // 앱 창이 뒤로 물러나면 남은 시간을 볼 데가 없어진다. 그동안만 화면 구석에
 // 작은 창을 하나 더 띄운다. 무엇을 적을지는 렌더러가 보내주는 한 장면이
 // 정하고, 여기서는 그 창을 여닫고 자리를 잡아주는 일만 한다.
-const WIDGET = { width: 372, height: 108, margin: 24 };
+// width, height 는 배율 1 일 때 크기. 휠로 배율을 바꾸면 창과 글자가 함께 커진다.
+const WIDGET = { width: 352, height: 88, margin: 24, minScale: 0.7, maxScale: 1.6, step: 0.1 };
 
 let widget = null;
+let widgetScale = 1;
 let scene = { mode: 'idle', enabled: true };  // 렌더러가 보내온 마지막 장면
 let dragFrom = null;                          // 끌기 시작할 때의 마우스와 창 위치
 let syncTimer = null;
 
-/** 옮겨둔 자리를 읽는다. 없거나 깨졌으면 null. */
+/** 이 배율일 때 창 크기 */
+function widgetSize(scale) {
+  return { width: Math.round(WIDGET.width * scale), height: Math.round(WIDGET.height * scale) };
+}
+
+function clampScale(scale) {
+  const tidy = Math.round(scale * 10) / 10; // 0.1 씩 더하다 생기는 0.30000000000000004 를 걷어낸다
+  return Math.min(WIDGET.maxScale, Math.max(WIDGET.minScale, tidy));
+}
+
+/** 옮겨둔 자리와 배율을 읽는다. 없거나 깨졌으면 null. */
 function savedSpot() {
   try {
     const spot = JSON.parse(fs.readFileSync(spotPath, 'utf8'));
-    if (Number.isFinite(spot.x) && Number.isFinite(spot.y)) return spot;
+    if (Number.isFinite(spot.x) && Number.isFinite(spot.y)) {
+      return { x: spot.x, y: spot.y, scale: Number.isFinite(spot.scale) ? clampScale(spot.scale) : 1 };
+    }
   } catch (err) {
     if (err.code !== 'ENOENT') console.error('[widget] 자리를 읽지 못했습니다:', err.message);
   }
   return null;
 }
 
-function saveSpot(spot) {
+function saveSpot() {
+  if (!widget || widget.isDestroyed()) return;
+  const { x, y } = widget.getBounds();
   try {
-    fs.writeFileSync(spotPath, JSON.stringify(spot), 'utf8');
+    fs.writeFileSync(spotPath, JSON.stringify({ x, y, scale: widgetScale }), 'utf8');
   } catch (err) {
     console.error('[widget] 자리를 적어두지 못했습니다:', err.message);
   }
@@ -181,9 +197,10 @@ function saveSpot(spot) {
 /** 그 자리가 아직 화면 안인가. 모니터를 뽑으면 밖으로 밀려나 있을 수 있다. */
 function onScreen(spot) {
   if (!spot) return false;
+  const size = widgetSize(spot.scale);
   const middle = {
-    x: Math.round(spot.x + WIDGET.width / 2),
-    y: Math.round(spot.y + WIDGET.height / 2),
+    x: Math.round(spot.x + size.width / 2),
+    y: Math.round(spot.y + size.height / 2),
   };
   const area = screen.getDisplayNearestPoint(middle).workArea;
   return middle.x >= area.x && middle.x <= area.x + area.width
@@ -194,24 +211,27 @@ function onScreen(spot) {
 function widgetSpot() {
   const spot = savedSpot();
   if (onScreen(spot)) return spot;
+  const scale = spot ? spot.scale : 1;
+  const size = widgetSize(scale);
   const area = screen.getPrimaryDisplay().workArea;
   return {
-    x: area.x + area.width - WIDGET.width - WIDGET.margin,
-    y: area.y + area.height - WIDGET.height - WIDGET.margin,
+    x: area.x + area.width - size.width - WIDGET.margin,
+    y: area.y + area.height - size.height - WIDGET.margin,
+    scale,
   };
 }
 
 function createWidget() {
   const spot = widgetSpot();
+  widgetScale = spot.scale;
   widget = new BrowserWindow({
     x: spot.x,
     y: spot.y,
-    width: WIDGET.width,
-    height: WIDGET.height,
+    ...widgetSize(widgetScale),
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
-    hasShadow: false,     // 그림자는 카드에 직접 그린다. 창 그림자는 네모나다.
+    hasShadow: false,     // 창 그림자는 둥근 카드 둘레에 네모나게 진다
     resizable: false,
     maximizable: false,
     minimizable: false,
@@ -229,9 +249,37 @@ function createWidget() {
   });
 
   widget.removeMenu();
+  // 글자와 링은 배율 1 에 맞춰 그렸으니 페이지를 통째로 확대해 창에 맞춘다
+  widget.webContents.on('did-finish-load', () => widget.webContents.setZoomFactor(widgetScale));
   widget.loadFile(path.join(__dirname, 'src', 'widget.html'));
   widget.on('closed', () => { widget = null; });
   return widget;
+}
+
+/**
+ * 휠로 크기 바꾸기. steps 가 +1 이면 한 칸 크게, -1 이면 한 칸 작게.
+ * 화면 가장자리 쪽 모서리를 붙박아 둔다. 오른쪽 아래에 둔 위젯이 커지면서
+ * 화면 밖으로 밀려나지 않고 왼쪽 위로 자라게 하려는 것이다.
+ */
+function resizeWidget(steps) {
+  if (!widget || widget.isDestroyed() || !Number.isFinite(steps) || dragFrom) return;
+  const next = clampScale(widgetScale + steps * WIDGET.step);
+  if (next === widgetScale) return;
+
+  const before = widget.getBounds();
+  const area = screen.getDisplayMatching(before).workArea;
+  const size = widgetSize(next);
+  const hugRight = before.x + before.width / 2 > area.x + area.width / 2;
+  const hugBottom = before.y + before.height / 2 > area.y + area.height / 2;
+
+  widgetScale = next;
+  widget.setBounds({
+    x: hugRight ? before.x + before.width - size.width : before.x,
+    y: hugBottom ? before.y + before.height - size.height : before.y,
+    ...size,
+  });
+  widget.webContents.setZoomFactor(next);
+  saveSpot();
 }
 
 function closeWidget() {
@@ -284,10 +332,12 @@ function dragWidget(step) {
   if (!dragFrom) return;
   const left = Math.round(dragFrom.left + step.x - dragFrom.x);
   const top = Math.round(dragFrom.top + step.y - dragFrom.y);
-  widget.setPosition(left, top);
+  // setPosition 은 배율이 100% 가 아닌 화면에서 옮길 때마다 창이 한두 픽셀씩
+  // 자라기도 해서, 크기까지 함께 못 박는다
+  widget.setBounds({ x: left, y: top, ...widgetSize(widgetScale) });
   if (step.phase === 'end') {
     dragFrom = null;
-    saveSpot({ x: left, y: top });
+    saveSpot();
   }
 }
 
@@ -555,6 +605,7 @@ if (!app.requestSingleInstanceLock()) {
       queueWidgetSync();
     });
     ipcMain.on('widget:drag', (_e, step) => dragWidget(step));
+    ipcMain.on('widget:resize', (_e, steps) => resizeWidget(steps));
 
     ipcMain.on('timer:arm', (_e, payload) => {
       if (payload && payload.endsAt) arm(payload.endsAt, payload.title);
